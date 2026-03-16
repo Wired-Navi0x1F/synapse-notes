@@ -11,7 +11,7 @@ app.use(express.static("public"));
 const db = mysql.createConnection({
   host: "localhost",
   user: "root",
-  password: "yourpassword",
+  password: "root123",
   database: "synapse",
 });
 
