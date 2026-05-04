@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>THE WIRED</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #020202;
+            font-family: 'Courier Prime', monospace;
+        }
+        #graph-container {
+            width: 100vw;
+            height: 100vh;
+        }
+        /* Subtle Scanlines */
+        body::after {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.2) 50%);
+            background-size: 100% 4px;
+            z-index: 999;
+            pointer-events: none;
+        }
+        .terminate-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: transparent;
+            color: #b8b8b8;
+            border: 1px solid #333;
+            padding: 5px 15px;
+            font-family: 'Courier Prime', monospace;
+            cursor: pointer;
+            pointer-events: auto;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+        .terminate-btn:hover {
+            color: #ff003c;
+            border-color: #ff003c;
+            text-shadow: 0 0 5px #ff003c;
+            background: rgba(255, 0, 60, 0.1);
+        }
+    </style>
+    <!-- Dependencies — pinned versions to prevent multiple THREE imports -->
+    <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+    <script src="https://unpkg.com/three-spritetext@1.8.2/dist/three-spritetext.min.js"></script>
+    <script src="https://unpkg.com/3d-force-graph@1.73.3/dist/3d-force-graph.min.js"></script>
+</head>
+<body>
+    
+    <a href="{{ url_for('index') }}" class="terminate-btn">[ DISCONNECT ]</a>
+    <div id="graph-container"></div>
+
+    <script>
+        fetch('/api/graph_data')
+            .then(res => res.json())
+            .then(data => {
+                const elem = document.getElementById('graph-container');
+                
+                const Graph = ForceGraph3D()(elem)
+                    .graphData(data)
+                    .backgroundColor('#020202') // Pitch black void
+                    .linkColor(() => '#0055ff') // Deep cyberpunk blue links
+                    .linkWidth(1.5)
+                    .linkDirectionalParticles(2)
+                    .linkDirectionalParticleWidth(2.5)
+                    .linkDirectionalParticleColor(() => '#00ffff') // Cyan data packets
+                    .linkDirectionalParticleSpeed(0.005)
+                    
+                    // Custom Three.js Node Rendering
+                    .nodeThreeObject(node => {
+                        // Create a Three.js Group to hold both geometry and text
+                        const group = new THREE.Group();
+                        
+                        // 1. Wireframe Icosahedron (Lain/Evangelion aesthetic)
+                        const size = 3 + (node.val * 0.5); // Scale node by content length
+                        const geometry = new THREE.IcosahedronGeometry(size, 0); // 0 detail = sharp angles
+                        const material = new THREE.MeshBasicMaterial({ 
+                            color: '#ff003c', // Aggressive Red
+                            wireframe: true,
+                            transparent: true,
+                            opacity: 0.9
+                        });
+                        const mesh = new THREE.Mesh(geometry, material);
+                        group.add(mesh);
+                        
+                        // 2. Persistent SpriteText Label (Obsidian style)
+                        const sprite = new SpriteText(node.name);
+                        sprite.color = '#b8b8b8'; // Muted grey text
+                        sprite.textHeight = 3.5;
+                        sprite.position.y = -(size + 4); // Position text directly below the node
+                        group.add(sprite);
+                        
+                        return group;
+                    })
+                    
+                    // Add simple rotation to the nodes to make the wireframes look dynamic
+                    .onEngineTick(() => {
+                        const nodes = Graph.graphData().nodes;
+                        nodes.forEach(node => {
+                            if (node.__threeObj && node.__threeObj.children[0]) {
+                                // Rotate the wireframe mesh (first child of the group)
+                                node.__threeObj.children[0].rotation.x += 0.01;
+                                node.__threeObj.children[0].rotation.y += 0.01;
+                            }
+                        });
+                    })
+                    
+                    .onNodeClick(node => {
+                        window.location.href = '/edit/' + node.id;
+                    })
+                    .onNodeHover(node => {
+                        elem.style.cursor = node ? 'crosshair' : 'default';
+                        
+                        // Highlight text on hover
+                        if (node && node.__threeObj && node.__threeObj.children[1]) {
+                            node.__threeObj.children[1].color = '#00ffff'; // Text turns cyan on hover
+                        } else {
+                            // Reset all text colors when not hovering
+                            Graph.graphData().nodes.forEach(n => {
+                                if (n.__threeObj && n.__threeObj.children[1]) {
+                                    n.__threeObj.children[1].color = '#b8b8b8';
+                                }
+                            });
+                        }
+                    });
+            })
+            .catch(err => console.error(err));
+    </script>
+</body>
+</html>

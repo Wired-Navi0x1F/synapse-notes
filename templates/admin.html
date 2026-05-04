@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="welcome-screen" style="align-items: flex-start; text-align: left;">
+    <h1 class="glitch" data-text="SYNAPSE_OBSERVER">SYNAPSE_OBSERVER</h1>
+    <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
+        <p style="color: red;">[ SYSTEM_ADMIN_ACCESS_GRANTED ]</p>
+        <div style="display: flex; gap: 1rem;">
+            <a href="{{ url_for('admin_export_logs') }}" class="btn" style="border-color: #00ff00; color: #00ff00;">> EXPORT_LOGS (.csv)</a>
+            <form action="{{ url_for('backup') }}" method="POST" style="margin: 0;">
+                <button type="submit" class="btn btn-accent">> TRIGGER_SYS_BACKUP</button>
+            </form>
+        </div>
+    </div>
+    
+    <div style="width: 100%; margin-top: 2rem; background: #000; border: 1px solid var(--accent); padding: 1rem; max-height: 200px; overflow-y: auto; font-family: 'Courier Prime', monospace;">
+        <h3 style="color: var(--accent); margin-bottom: 0.5rem;">[ SYSTEM_LOGS ]</h3>
+        {% for log in logs %}
+        <div style="font-size: 0.8rem; margin-bottom: 0.2rem;">
+            <span style="color: #555;">[{{ log.timestamp }}]</span> 
+            <span style="color: #ff0;">{{ log.action }}</span>: 
+            <span style="color: #fff;">{{ log.detail }}</span>
+            {% if log.user_id %}(USR_ID: {{ log.user_id }}){% endif %}
+        </div>
+        {% else %}
+        <div style="color: #555;">No logs recorded yet.</div>
+        {% endfor %}
+    </div>
+    
+    <div style="width: 100%; margin-top: 2rem;">
+        <h2 style="border-bottom: 1px solid var(--border-color); color: var(--text-main);">[STATISTICS] ACTIVE HACKERS</h2>
+        <table style="width: 100%; margin-top: 1rem; border-collapse: collapse;">
+            <thead>
+                <tr style="text-align: left; color: var(--text-alt);">
+                    <th style="padding: 0.5rem; border: 1px solid var(--border-color);">ID</th>
+                    <th style="padding: 0.5rem; border: 1px solid var(--border-color);">USERNAME</th>
+                    <th style="padding: 0.5rem; border: 1px solid var(--border-color);">NOTES_CREATED</th>
+                    <th style="padding: 0.5rem; border: 1px solid var(--border-color);">ACTION</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in users %}
+                <tr>
+                    <td style="padding: 0.5rem; border: 1px solid var(--border-color);">{{ u.id }}</td>
+                    <td style="padding: 0.5rem; border: 1px solid var(--border-color);">{{ u.username }}</td>
+                    <td style="padding: 0.5rem; border: 1px solid var(--border-color); font-size: 1.2rem; font-weight: bold; color: var(--accent);">{{ u.note_count }}</td>
+                    <td style="padding: 0.5rem; border: 1px solid var(--border-color);">
+                        {% if u.username != 'admin' %}
+                        <form action="{{ url_for('admin_delete_user', id=u.id) }}" method="POST" style="margin: 0;">
+                            <button type="submit" class="btn btn-danger" style="padding: 0.1rem 0.3rem; font-size: 0.8rem;">PURGE</button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div style="width: 100%; margin-top: 3rem;">
+        <h2 style="border-bottom: 1px solid var(--border-color); color: var(--text-main);">TABLE: neo_notes</h2>
+        <table style="width: 100%; margin-top: 1rem; border-collapse: collapse;">
+            <thead>
+                <tr style="text-align: left; color: var(--text-alt);">
+                    <th style="padding: 0.5rem; border: 1px solid var(--border-color);">ID</th>
+                    <th style="padding: 0.5rem; border: 1px solid var(--border-color);">TITLE</th>
+                    <th style="padding: 0.5rem; border: 1px solid var(--border-color);">USER_ID</th>
+                    <th style="padding: 0.5rem; border: 1px solid var(--border-color);">SESSION_ID (GUEST)</th>
+                    <th style="padding: 0.5rem; border: 1px solid var(--border-color);">CREATED_AT</th>
+                    <th style="padding: 0.5rem; border: 1px solid var(--border-color);">ACTION</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for n in notes %}
+                <tr>
+                    <td style="padding: 0.5rem; border: 1px solid var(--border-color);">{{ n.id }}</td>
+                    <td style="padding: 0.5rem; border: 1px solid var(--border-color);">{{ n.title }}</td>
+                    <td style="padding: 0.5rem; border: 1px solid var(--border-color);">{{ n.user_id if n.user_id else 'NULL' }}</td>
+                    <td style="padding: 0.5rem; border: 1px solid var(--border-color); font-size: 0.8rem;">{{ n.session_id if n.session_id else 'NULL' }}</td>
+                    <td style="padding: 0.5rem; border: 1px solid var(--border-color);">{{ n.created_at }}</td>
+                    <td style="padding: 0.5rem; border: 1px solid var(--border-color);">
+                        <form action="{{ url_for('admin_delete_note', id=n.id) }}" method="POST" style="margin: 0;">
+                            <button type="submit" class="btn btn-danger" style="padding: 0.1rem 0.3rem; font-size: 0.8rem;">DELETE</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="welcome-screen" style="align-items: flex-start; text-align: left; padding-bottom: 2rem;">
+    <h1 class="glitch" data-text="ARCHIVE_VAULT">ARCHIVE_VAULT</h1>
+    <p style="color: var(--text-alt);">[ PERMANENT STORAGE / COLD STORAGE ]</p>
+    
+    <div style="width: 100%; margin-top: 2rem; background: #000; border: 1px solid var(--accent); padding: 1rem; overflow-y: auto; font-family: var(--font-fam);">
+        <table style="width: 100%; text-align: left; border-collapse: collapse;">
+            <thead>
+                <tr style="border-bottom: 1px dashed var(--accent); color: var(--accent);">
+                    <th style="padding: 0.5rem;">ID</th>
+                    <th style="padding: 0.5rem;">TITLE</th>
+                    <th style="padding: 0.5rem;">ARCHIVED_AT</th>
+                    <th style="padding: 0.5rem;">ACTION</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for note in archived_notes %}
+                <tr style="border-bottom: 1px dashed #333;">
+                    <td style="padding: 0.5rem; color: var(--text-alt);">{{ note.id }}</td>
+                    <td style="padding: 0.5rem;">{{ note.title }}</td>
+                    <td style="padding: 0.5rem; color: var(--text-alt);">{{ note.archived_at }}</td>
+                    <td style="padding: 0.5rem;">
+                        <form action="{{ url_for('restore', id=note.id) }}" method="POST" style="margin: 0;">
+                            <button type="submit" class="btn btn-accent" style="padding: 0.2rem 0.5rem; font-size: 0.8rem;">RESTORE</button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4" style="padding: 1rem; text-align: center; color: var(--text-alt);">[ NO_ARCHIVES_FOUND ]</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

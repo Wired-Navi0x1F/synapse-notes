@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="form-container">
+    <h2 style="color: var(--accent); margin-bottom: 2rem; font-size: 2rem; text-align: center;">> REGISTER_NEW_USER</h2>
+    <form action="{{ url_for('signup') }}" method="POST">
+        <div class="form-group">
+            <label class="form-label">USERNAME</label>
+            <input type="text" name="username" class="form-control" required autocomplete="off">
+        </div>
+        <div class="form-group">
+            <label class="form-label">PASSWORD</label>
+            <input type="password" name="password" class="form-control" required>
+        </div>
+        <button type="submit" class="btn btn-accent" style="width: 100%; margin-top: 1rem;">INITIALIZE_ACCOUNT</button>
+    </form>
+    <div style="text-align: center; margin-top: 2rem; color: var(--text-alt);">
+        EXISTING ACCOUNT? <a href="{{ url_for('login') }}" style="color: var(--accent);">LOGIN</a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/atom-one-dark.min.css">
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+
+<form method="POST" id="note-form" style="display: flex; flex-direction: column; height: 100%; padding-bottom: 30px;">
+    <div class="breadcrumb">
+        SYNAPSE_WORKSPACE / {% if note and note.folder_id %}{{ all_folders|selectattr("id", "equalto", note.folder_id)|map(attribute="name")|first }}{% else %}Root{% endif %} / {{ note.title if note else 'UNTITLED_FILE' }}
+    </div>
+    <div class="editor-header">
+        <input type="text" name="title" id="note-title" class="editor-title" value="{{ note.title if note else '' }}" placeholder="UNTITLED_FILE" autocomplete="off" style="margin-bottom:0;">
+        <select name="folder_id" style="background: var(--panel-bg); color: var(--text-main); border: 1px solid var(--accent); padding: 0.2rem; font-family: var(--font-fam); outline: none;">
+            <option value="">-- No Folder --</option>
+            {% for folder in all_folders %}
+            <option value="{{ folder.id }}" {% if note and note.folder_id == folder.id %}selected{% endif %}>{{ folder.name }}</option>
+            {% endfor %}
+        </select>
+        <div style="display: flex; gap: 1rem; align-items: center;">
+            <span id="save-status" style="color: var(--text-alt); font-size: 0.8rem; display: none;">[SAVED]</span>
+            {% if note %}
+
+            <button type="button" class="btn" onclick="document.getElementById('archive-form').submit();" style="border-color: #ffaa00; color: #ffaa00;">ARCHIVE</button>
+            <button type="button" class="btn btn-danger" onclick="document.getElementById('delete-form').submit();">DELETE</button>
+            {% endif %}
+            <button type="submit" class="btn btn-accent">SAVE</button>
+        </div>
+    </div>
+    
+    <div style="display: flex; flex: 1; gap: 1rem; height: calc(100vh - 150px);">
+        <textarea name="content" id="note-content" class="form-control" style="flex: 1; height: 100%; border-right: 1px dashed var(--text-alt);" placeholder="> Enter Markdown here...">{{ note.content if note else '' }}</textarea>
+        <div id="preview-pane" style="flex: 1; height: 100%; overflow-y: auto; padding: 1rem; border: 1px solid var(--border-color); background: rgba(0,0,0,0.5);"></div>
+    </div>
+</form>
+
+{% if note %}
+<form id="delete-form" action="{{ url_for('delete', id=note.id) }}" method="POST" style="display: none;"></form>
+<form id="archive-form" action="{{ url_for('archive', id=note.id) }}" method="POST" style="display: none;"></form>
+{% endif %}
+
+<script>
+    // Initialize Markdown and Highlighting
+    marked.setOptions({
+        highlight: function(code, lang) {
+            const language = hljs.getLanguage(lang) ? lang : 'plaintext';
+            return hljs.highlight(code, { language }).value;
+        }
+    });
+
+    const contentArea = document.getElementById('note-content');
+    const previewPane = document.getElementById('preview-pane');
+    
+    function updatePreview() {
+        let text = contentArea.value;
+        // Parse Obsidian-style links [[Note Title]]
+        text = text.replace(/\[\[(.*?)\]\]/g, function(match, p1) {
+            return '<a href="/open_note/' + encodeURIComponent(p1) + '" style="color: var(--accent); text-decoration: underline;">' + p1 + '</a>';
+        });
+        previewPane.innerHTML = marked.parse(text);
+    }
+    
+    contentArea.addEventListener('input', updatePreview);
+    updatePreview(); // initial render
+
+    // Auto-save logic
+    let saveTimeout;
+    const noteId = "{{ note.id if note else '' }}";
+    const statusEl = document.getElementById('save-status');
+    const titleInput = document.getElementById('note-title');
+
+    function triggerAutosave() {
+        if (!noteId) return; // Don't autosave if it's a new note that hasn't been created yet
+        if (!contentArea.value.trim()) return;
+        
+        statusEl.textContent = '[SAVING...]';
+        statusEl.style.display = 'inline';
+        
+        fetch(`/api/autosave/${noteId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                title: titleInput.value,
+                content: contentArea.value
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'success') {
+                statusEl.textContent = '[SAVED]';
+                if (data.title) titleInput.value = data.title;
+                setTimeout(() => statusEl.style.display = 'none', 2000);
+            } else {
+                statusEl.textContent = '[ERROR]';
+            }
+        })
+        .catch(err => {
+            statusEl.textContent = '[ERROR]';
+        });
+    }
+
+    contentArea.addEventListener('input', () => {
+        clearTimeout(saveTimeout);
+        saveTimeout = setTimeout(triggerAutosave, 3000); // 3 seconds
+    });
+    titleInput.addEventListener('input', () => {
+        clearTimeout(saveTimeout);
+        saveTimeout = setTimeout(triggerAutosave, 3000);
+    });
+</script>
+{% endblock %}

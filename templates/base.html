@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NeoNotes</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-brand">
+            <a href="{{ url_for('index') }}">SYNAPSE_NOTES v1.0</a>
+        </div>
+        <div class="navbar-nav">
+            {% if session.get('user_id') %}
+                <span class="nav-link">USR://{{ session.get('username') }}</span>
+                <a href="{{ url_for('logout') }}" class="btn-nav danger">DISCONNECT</a>
+            {% else %}
+                <span class="nav-link">[GUEST_MODE]</span>
+                <a href="{{ url_for('login') }}" class="btn-nav">LOGIN</a>
+                <a href="{{ url_for('signup') }}" class="btn-nav">SIGN_UP</a>
+            {% endif %}
+        </div>
+    </nav>
+
+    <div class="layout">
+        <!-- ===== ICON RAIL ===== -->
+        <div class="icon-rail">
+            <button class="rail-icon active" data-tooltip="Files" onclick="toggleFilePanel()" id="rail-files">
+                <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            </button>
+
+            <button class="rail-icon" data-tooltip="Search [Ctrl+K]" onclick="document.getElementById('note-search-input').focus()">
+                <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </button>
+
+            <a href="{{ url_for('archive_vault') }}" class="rail-icon" data-tooltip="Archive_Vault">
+                <svg viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+            </a>
+
+            <div class="rail-divider"></div>
+
+            {% if session.get('user_id') %}
+            <a href="{{ url_for('the_wired') }}" class="rail-icon" data-tooltip="The_Wired" style="color: var(--cyan);">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            </a>
+            {% endif %}
+
+            <button class="rail-icon" data-tooltip="New_Folder" onclick="openFolderModal()">
+                <svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+            </button>
+
+            <div class="rail-spacer"></div>
+
+            {% if session.get('username') == 'admin' %}
+            <a href="{{ url_for('admin') }}" class="rail-icon" data-tooltip="SYNAPSE_OBSERVER" style="color: var(--accent);">
+                <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            </a>
+            {% endif %}
+        </div>
+
+        <!-- ===== FILE PANEL ===== -->
+        <div class="file-panel" id="file-panel">
+            <!-- Toolbar -->
+            <div class="panel-toolbar">
+                <span class="panel-toolbar-title">// FILES</span>
+                <div class="panel-toolbar-actions">
+                    <a href="{{ url_for('create') }}" class="toolbar-btn" title="New File">
+                        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+                    </a>
+                    <button class="toolbar-btn" title="New Folder" onclick="openFolderModal()">
+                        <svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg>
+                    </button>
+                    <button class="toolbar-btn" title="Collapse All" onclick="collapseAllFolders()">
+                        <svg viewBox="0 0 24 24"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+                    </button>
+                </div>
+            </div>
+            
+            <div style="padding: 0.5rem; border-bottom: 1px solid var(--border-color);">
+                <input type="text" id="note-search-input" placeholder="> search notes..." style="width: 100%; background: #000; border: 1px solid var(--accent); color: var(--text-main); padding: 0.3rem; font-family: var(--font-fam); outline: none;">
+            </div>
+
+            {% if all_tags %}
+            <div class="panel-tags">
+                {% for tag in all_tags %}
+                <span class="panel-tag" onclick="filterByTag('{{ tag }}')">#{{ tag }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Note List with VS Code folders -->
+            <div class="panel-notes">
+                {% for folder in all_folders %}
+                <div class="panel-folder-group">
+                    <div class="panel-folder-label expanded" onclick="toggleFolder(this)" data-folder-id="{{ folder.id }}">
+                        <span class="folder-chevron">▶</span>
+                        <span class="folder-name-text">{{ folder.name }}</span>
+                        <span class="folder-actions">
+                        </span>
+                    </div>
+                    <div class="folder-children" data-folder-children="{{ folder.id }}">
+                        {% for n in all_notes %}
+                            {% if n.folder_id == folder.id %}
+                            <a href="{{ url_for('edit', id=n.id) }}" class="panel-note-item {% if note and note.id == n.id %}active{% endif %}">
+                                {{ n.title }}
+                            </a>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endfor %}
+                
+                <!-- Root-level notes (no folder) -->
+                {% for n in all_notes %}
+                    {% if not n.folder_id %}
+                    <a href="{{ url_for('edit', id=n.id) }}" class="panel-note-item root-note {% if note and note.id == n.id %}active{% endif %}">
+                        {{ n.title }}
+                    </a>
+                    {% endif %}
+                {% endfor %}
+            </div>
+
+            <!-- User Bar -->
+            <div class="panel-user-bar">
+                <div class="user-avatar">
+                    <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                </div>
+                <span class="user-name">{{ session.get('username', 'guest') }}</span>
+                <div class="user-actions">
+                </div>
+            </div>
+        </div>
+
+        <main class="main-content">
+            <div class="flash-messages">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }}">SYS_MSG: {{ message }}</div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+            </div>
+            
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <!-- Folder Modal -->
+    <div id="folder-modal" class="folder-modal-overlay" onclick="if(event.target===this) closeFolderModal()">
+        <div class="folder-modal">
+            <h3>NEW_FOLDER</h3>
+            <form action="{{ url_for('create_folder') }}" method="POST" id="folder-form">
+                <input type="text" name="folder_name" placeholder="> enter folder name..." autocomplete="off" id="folder-name-input">
+                <div class="folder-modal-actions">
+                    <button type="button" class="folder-modal-btn cancel" onclick="closeFolderModal()">CANCEL</button>
+                    <button type="submit" class="folder-modal-btn submit">CREATE</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Command Palette Removed -->
+
+    <!-- Status Bar -->
+    <div class="status-bar" id="status-bar">
+        <div style="display:flex; gap:15px;">
+            <span>&#10003; SYNAPSE_CORE_ONLINE</span>
+            <span>FORMAT: MARKDOWN (UTF-8)</span>
+        </div>
+        <div>
+            <span id="sb-words">Words: 0</span> &nbsp;|&nbsp; 
+            <span id="sb-chars">Chars: 0</span>
+        </div>
+    </div>
+
+    <script>
+        // ===== File Panel Toggle =====
+        function toggleFilePanel() {
+            const panel = document.getElementById('file-panel');
+            const btn = document.getElementById('rail-files');
+            panel.classList.toggle('collapsed');
+            btn.classList.toggle('active');
+        }
+
+        // ===== VS Code Collapsible Folders =====
+        function toggleFolder(labelEl) {
+            const folderId = labelEl.getAttribute('data-folder-id');
+            const children = document.querySelector(`[data-folder-children="${folderId}"]`);
+            
+            if (labelEl.classList.contains('expanded')) {
+                labelEl.classList.remove('expanded');
+                labelEl.classList.add('collapsed');
+                children.classList.add('collapsed');
+                saveFolderState(folderId, false);
+            } else {
+                labelEl.classList.remove('collapsed');
+                labelEl.classList.add('expanded');
+                children.classList.remove('collapsed');
+                saveFolderState(folderId, true);
+            }
+        }
+
+        function collapseAllFolders() {
+            document.querySelectorAll('.panel-folder-label').forEach(label => {
+                label.classList.remove('expanded');
+                label.classList.add('collapsed');
+            });
+            document.querySelectorAll('.folder-children').forEach(c => {
+                c.classList.add('collapsed');
+            });
+            localStorage.setItem('neo_folders', '{}');
+        }
+
+        function saveFolderState(folderId, isOpen) {
+            let states = JSON.parse(localStorage.getItem('neo_folders') || '{}');
+            states[folderId] = isOpen;
+            localStorage.setItem('neo_folders', JSON.stringify(states));
+        }
+
+        // Restore folder states on load
+        (function restoreFolderStates() {
+            let states = JSON.parse(localStorage.getItem('neo_folders') || '{}');
+            document.querySelectorAll('.panel-folder-label').forEach(label => {
+                const folderId = label.getAttribute('data-folder-id');
+                if (states[folderId] === false) {
+                    label.classList.remove('expanded');
+                    label.classList.add('collapsed');
+                    const children = document.querySelector(`[data-folder-children="${folderId}"]`);
+                    if (children) children.classList.add('collapsed');
+                }
+            });
+        })();
+
+        // ===== Folder Modal =====
+        function openFolderModal() {
+            document.getElementById('folder-modal').classList.add('show');
+            setTimeout(() => document.getElementById('folder-name-input').focus(), 100);
+        }
+        function closeFolderModal() {
+            document.getElementById('folder-modal').classList.remove('show');
+        }
+
+        // Command Palette Removed
+
+        // Auto-fade flash messages
+        setTimeout(() => {
+            document.querySelectorAll('.alert').forEach(alert => {
+                alert.style.transition = "opacity 0.5s ease";
+                alert.style.opacity = "0";
+                setTimeout(() => alert.remove(), 500);
+            });
+        }, 4000);
+
+        // Tag filtering
+        function filterByTag(tag) {
+            alert('Filtering for #' + tag + ' is simulated.');
+        }
+
+        // Search logic
+        const searchInput = document.getElementById('note-search-input');
+        if (searchInput) {
+            searchInput.addEventListener('input', function() {
+                const term = this.value.toLowerCase();
+                document.querySelectorAll('.panel-note-item').forEach(item => {
+                    const title = item.textContent.toLowerCase();
+                    if (title.includes(term)) {
+                        item.style.display = 'block';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+            });
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'k') {
+                e.preventDefault();
+                if (searchInput) searchInput.focus();
+            }
+            if (e.key === 'Escape') {
+                closeFolderModal();
+                if (searchInput) searchInput.blur();
+            }
+        });
+
+        // Status Bar Logic
+        const sbContentArea = document.getElementById('note-content');
+        if (sbContentArea) {
+            function updateStatusBar() {
+                const text = sbContentArea.value;
+                const chars = text.length;
+                const words = text.trim() === '' ? 0 : text.trim().split(/\s+/).length;
+                document.getElementById('sb-words').innerText = `Words: ${words}`;
+                document.getElementById('sb-chars').innerText = `Chars: ${chars}`;
+            }
+            sbContentArea.addEventListener('input', updateStatusBar);
+            updateStatusBar();
+        }
+
+        // Folder modal enter to submit
+        document.getElementById('folder-name-input').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                document.getElementById('folder-form').submit();
+            }
+        });
+    </script>
+</body>
+</html>
