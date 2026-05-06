@@ -1,0 +1,73 @@
+{
+  "themes": [
+    {
+      "id": "default",
+      "name": "CYBERCORE",
+      "description": "High contrast black & red. Copland OS aesthetic.",
+      "preview": ["#ff003c", "#606060", "#ebebdf"],
+      "vars": {
+        "--bg": "#000000",
+        "--panel-bg": "rgba(0, 0, 0, 0.97)",
+        "--text-main": "#ebebdf",
+        "--text-alt": "#9c1a1a",
+        "--accent": "#ff003c",
+        "--cyan": "#787878",
+        "--border-color": "#606060",
+        "--rail-bg": "#020202",
+        "--sidebar-bg": "#050505",
+        "--sidebar-hover": "#181818",
+        "--sidebar-active": "#202020",
+        "--sidebar-text": "#d0d0c8",
+        "--sidebar-text-dim": "#888888",
+        "--sidebar-border": "#505050",
+        "--text-glow": "0 0 3px rgba(235, 235, 223, 0.35)"
+      }
+    },
+    {
+      "id": "muted-blue",
+      "name": "MUTED BLUE",
+      "description": "Deep navy with electric blue accents. Obsidian-inspired.",
+      "preview": ["#2979ff", "#393e50", "#a6accd"],
+      "vars": {
+        "--bg": "#0f111a",
+        "--panel-bg": "#0f111a",
+        "--text-main": "#a6accd",
+        "--text-alt": "#2979ff",
+        "--accent": "#2979ff",
+        "--cyan": "#4b4f62",
+        "--border-color": "#393e50",
+        "--rail-bg": "#0f111a",
+        "--sidebar-bg": "#0f111a",
+        "--sidebar-hover": "#272931",
+        "--sidebar-active": "#272931",
+        "--sidebar-text": "#a6accd",
+        "--sidebar-text-dim": "#4b4f62",
+        "--sidebar-border": "#272931",
+        "--text-glow": "0 0 4px rgba(41, 121, 255, 0.2)"
+      }
+    },
+    {
+      "id": "wasp",
+      "name": "WASP",
+      "description": "Warm amber & gold on dark charcoal. By Santi Younger.",
+      "preview": ["#f8c537", "#D49335", "#faf2d6"],
+      "vars": {
+        "--bg": "#242424",
+        "--panel-bg": "#191919",
+        "--text-main": "#faf2d6",
+        "--text-alt": "#D49335",
+        "--accent": "#f8c537",
+        "--cyan": "#83a598",
+        "--border-color": "#f8c537",
+        "--rail-bg": "#191919",
+        "--sidebar-bg": "#191919",
+        "--sidebar-hover": "#3D3D3D",
+        "--sidebar-active": "#3D3D3D",
+        "--sidebar-text": "#faf2d6",
+        "--sidebar-text-dim": "#bdae93",
+        "--sidebar-border": "#3D3D3D",
+        "--text-glow": "0 0 4px rgba(248, 197, 55, 0.15)"
+      }
+    }
+  ]
+}

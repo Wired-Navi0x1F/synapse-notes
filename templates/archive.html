@@ -17,7 +17,7 @@
             </thead>
             <tbody>
                 {% for note in archived_notes %}
-                <tr style="border-bottom: 1px dashed #333;">
+                <tr style="border-bottom: 1px dashed var(--border-color);">
                     <td style="padding: 0.5rem; color: var(--text-alt);">{{ note.id }}</td>
                     <td style="padding: 0.5rem;">{{ note.title }}</td>
                     <td style="padding: 0.5rem; color: var(--text-alt);">{{ note.archived_at }}</td>

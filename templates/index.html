@@ -2,6 +2,10 @@
 
 {% block content %}
 <div class="welcome-screen">
+    <div style="margin-bottom: 2rem;">
+        <h2 class="glitch" data-text="PRESENT DAY, PRESENT TIME" style="font-size: 1.5rem; letter-spacing: 3px;">PRESENT DAY, PRESENT TIME</h2>
+        <p style="color: var(--accent); font-family: var(--font-heading); font-size: 1.2rem; margin-top: 5px;">...</p>
+    </div>
     <pre style="color: var(--accent); font-size: 0.5rem; line-height: 1; letter-spacing: 0; text-align: center; margin: 2rem 0; opacity: 0.8; user-select: none;">
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
@@ -39,6 +43,15 @@
     <div style="border: 1px dashed var(--text-alt); padding: 1rem; display: inline-block;">
         <span style="color: var(--text-alt);">WARNING:</span> RUNNING IN GUEST MODE. <br>
         <a href="{{ url_for('signup') }}" style="color: var(--accent);">CREATE ACCOUNT</a> TO PERSIST DATA SECURELY.
+    </div>
+    {% else %}
+    <br><br>
+    <div style="border: 1px dashed var(--accent); padding: 1rem; display: inline-block;">
+        <span style="color: var(--accent);">IMPORT .MD FILE:</span><br>
+        <form action="{{ url_for('import_note') }}" method="POST" enctype="multipart/form-data" style="margin-top: 10px; display: flex; gap: 10px; align-items: center;">
+            <input type="file" name="file" accept=".md" required style="background: var(--panel-bg); color: var(--text-main); border: 1px solid var(--accent); font-family: var(--font-fam); padding: 0.2rem;">
+            <button type="submit" class="btn" style="border-color: #bb86fc; color: #bb86fc; padding: 0.2rem 1rem;">UPLOAD</button>
+        </form>
     </div>
     {% endif %}
 </div>

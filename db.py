@@ -1,153 +1,116 @@
-import pymysql
 import os
+from dotenv import load_dotenv
+from sqlalchemy import create_engine, text
+from sqlalchemy.pool import QueuePool
 
-# DB Credentials based on user input
-DB_HOST = 'localhost'
-DB_USER = 'root'
-DB_PASSWORD = 'root123'
-DB_NAME = 'SEE'
+load_dotenv()
 
-def get_db_connection():
-    try:
-        connection = pymysql.connect(
-            host=DB_HOST,
-            user=DB_USER,
-            password=DB_PASSWORD,
-            database=DB_NAME,
-            cursorclass=pymysql.cursors.DictCursor
-        )
-        return connection
-    except pymysql.MySQLError as e:
-        print(f"Error connecting to MySQL: {e}")
-        return None
+DB_HOST     = os.getenv("DB_HOST", "localhost")
+DB_USER     = os.getenv("DB_USER", "root")
+DB_PASSWORD = os.getenv("DB_PASSWORD", "")
+DB_NAME     = os.getenv("DB_NAME", "SEE")
+
+# ── Connection Pool ──────────────────────────────────────────────────────────
+# pool_pre_ping ensures dead connections are detected before use.
+# pool_recycle recycles connections every hour to avoid MySQL's wait_timeout.
+engine = create_engine(
+    f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}/{DB_NAME}",
+    poolclass=QueuePool,
+    pool_size=10,
+    max_overflow=20,
+    pool_pre_ping=True,
+    pool_recycle=3600,
+)
+
 
 def init_db():
-    connection = get_db_connection()
-    if not connection:
-        # Try connecting without DB_NAME to see if we need to create it
-        try:
-            connection = pymysql.connect(
-                host=DB_HOST,
-                user=DB_USER,
-                password=DB_PASSWORD,
-                cursorclass=pymysql.cursors.DictCursor
-            )
-            with connection.cursor() as cursor:
-                cursor.execute(f"CREATE DATABASE IF NOT EXISTS {DB_NAME}")
-            connection.commit()
-            connection.select_db(DB_NAME)
-        except pymysql.MySQLError as e:
-            print(f"Error creating database: {e}")
-            return
-            
-    with connection.cursor() as cursor:
-        cursor.execute("DROP TABLE IF EXISTS neo_notes")
-        cursor.execute("DROP TABLE IF EXISTS neo_folders")
-        cursor.execute("DROP TABLE IF EXISTS neo_users")
-        
-        # Create users table
-        cursor.execute("""
+    """
+    SAFE schema initialiser — only CREATEs, never DROPs existing tables.
+    Run db_migrate.py for schema upgrades on an existing database.
+    """
+    with engine.begin() as conn:
+
+        conn.execute(text("""
             CREATE TABLE IF NOT EXISTS neo_users (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                username VARCHAR(150) UNIQUE NOT NULL,
+                id            INT AUTO_INCREMENT PRIMARY KEY,
+                username      VARCHAR(150) UNIQUE NOT NULL,
                 password_hash VARCHAR(255) NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
-        """)
-        
-        # Create folders table
-        cursor.execute("""
+        """))
+
+        conn.execute(text("""
             CREATE TABLE IF NOT EXISTS neo_folders (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                name VARCHAR(255) NOT NULL,
-                user_id INT NULL,
+                id         INT AUTO_INCREMENT PRIMARY KEY,
+                name       VARCHAR(255) NOT NULL,
+                user_id    INT NULL,
                 session_id VARCHAR(255) NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES neo_users(id) ON DELETE CASCADE
             )
-        """)
-        
-        # Create notes table
-        cursor.execute("""
+        """))
+
+        conn.execute(text("""
             CREATE TABLE IF NOT EXISTS neo_notes (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                title VARCHAR(255) NOT NULL,
-                content TEXT NOT NULL,
-                folder_id INT NULL,
-                user_id INT NULL,
+                id         INT AUTO_INCREMENT PRIMARY KEY,
+                title      VARCHAR(255) NOT NULL,
+                content    TEXT NOT NULL,
+                folder_id  INT NULL,
+                user_id    INT NULL,
                 session_id VARCHAR(255) NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES neo_users(id) ON DELETE CASCADE,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                deleted_at TIMESTAMP NULL DEFAULT NULL,
+                FOREIGN KEY (user_id)   REFERENCES neo_users(id)   ON DELETE CASCADE,
                 FOREIGN KEY (folder_id) REFERENCES neo_folders(id) ON DELETE SET NULL
             )
-        """)
-        
-        # Create logs table
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS neo_logs (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                action VARCHAR(100) NOT NULL,
-                detail TEXT NOT NULL,
-                user_id INT NULL,
-                session_id VARCHAR(255) NULL,
-                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-        
-        # Create archived notes table
-        cursor.execute("""
+        """))
+
+        conn.execute(text("""
             CREATE TABLE IF NOT EXISTS neo_archived_notes (
-                id INT PRIMARY KEY,
-                title VARCHAR(255) NOT NULL,
-                content TEXT NOT NULL,
-                folder_id INT NULL,
-                user_id INT NULL,
+                id         INT PRIMARY KEY,
+                title      VARCHAR(255) NOT NULL,
+                content    TEXT NOT NULL,
+                folder_id  INT NULL,
+                user_id    INT NULL,
                 session_id VARCHAR(255) NULL,
                 created_at TIMESTAMP,
                 archived_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
-        """)
-        
-        # Create Indexes
-        try:
-            cursor.execute("CREATE INDEX idx_user ON neo_notes(user_id)")
-            cursor.execute("CREATE INDEX idx_session ON neo_notes(session_id)")
-        except Exception:
-            pass # Ignore if indexes already exist
+        """))
 
-        # Create View
-        cursor.execute("""
-            CREATE OR REPLACE VIEW Active_Hackers_View AS 
-            SELECT u.id, u.username, COUNT(n.id) as note_count 
-            FROM neo_users u 
-            LEFT JOIN neo_notes n ON u.id = n.user_id 
+        # Indexes (ignore if already exist)
+        for ddl in [
+            "CREATE INDEX IF NOT EXISTS idx_notes_user_created    ON neo_notes(user_id, created_at DESC)",
+            "CREATE INDEX IF NOT EXISTS idx_notes_session_created ON neo_notes(session_id, created_at DESC)",
+            "CREATE INDEX IF NOT EXISTS idx_folders_user          ON neo_folders(user_id)",
+            "CREATE INDEX IF NOT EXISTS idx_archived_user         ON neo_archived_notes(user_id, archived_at DESC)",
+        ]:
+            try:
+                conn.execute(text(ddl))
+            except Exception:
+                pass
+
+        # View
+        conn.execute(text("""
+            CREATE OR REPLACE VIEW Active_Hackers_View AS
+            SELECT u.id, u.username, COUNT(n.id) as note_count
+            FROM neo_users u
+            LEFT JOIN neo_notes n ON u.id = n.user_id AND n.deleted_at IS NULL
             GROUP BY u.id
-        """)
+        """))
 
-        # Create Trigger
-        cursor.execute("DROP TRIGGER IF EXISTS after_note_insert")
-        cursor.execute("""
-            CREATE TRIGGER after_note_insert
-            AFTER INSERT ON neo_notes
-            FOR EACH ROW
-            BEGIN
-                INSERT INTO neo_logs (action, detail, user_id, session_id) 
-                VALUES ('CREATE_NOTE', CONCAT('Note created (Trigger): ', NEW.title, ' (ID: ', NEW.id, ')'), NEW.user_id, NEW.session_id);
-            END;
-        """)
-
-        # Create Stored Procedure
-        cursor.execute("DROP PROCEDURE IF EXISTS PurgeUser")
-        cursor.execute("""
+        # Stored procedure
+        conn.execute(text("DROP PROCEDURE IF EXISTS PurgeUser"))
+        conn.execute(text("""
             CREATE PROCEDURE PurgeUser(IN uid INT)
             BEGIN
                 DELETE FROM neo_users WHERE id = uid;
-                INSERT INTO neo_logs (action, detail) VALUES ('PURGE_USER', CONCAT('User ', uid, ' purged via Stored Procedure'));
-            END;
-        """)
-    connection.commit()
-    connection.close()
+            END
+        """))
 
-if __name__ == '__main__':
+    print("Database initialised successfully.")
+
+
+if __name__ == "__main__":
     init_db()
-    print("Database initialized successfully.")

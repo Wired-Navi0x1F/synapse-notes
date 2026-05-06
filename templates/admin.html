@@ -6,87 +6,135 @@
     <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
         <p style="color: red;">[ SYSTEM_ADMIN_ACCESS_GRANTED ]</p>
         <div style="display: flex; gap: 1rem;">
-            <a href="{{ url_for('admin_export_logs') }}" class="btn" style="border-color: #00ff00; color: #00ff00;">> EXPORT_LOGS (.csv)</a>
             <form action="{{ url_for('backup') }}" method="POST" style="margin: 0;">
                 <button type="submit" class="btn btn-accent">> TRIGGER_SYS_BACKUP</button>
             </form>
         </div>
     </div>
     
-    <div style="width: 100%; margin-top: 2rem; background: #000; border: 1px solid var(--accent); padding: 1rem; max-height: 200px; overflow-y: auto; font-family: 'Courier Prime', monospace;">
-        <h3 style="color: var(--accent); margin-bottom: 0.5rem;">[ SYSTEM_LOGS ]</h3>
-        {% for log in logs %}
-        <div style="font-size: 0.8rem; margin-bottom: 0.2rem;">
-            <span style="color: #555;">[{{ log.timestamp }}]</span> 
-            <span style="color: #ff0;">{{ log.action }}</span>: 
-            <span style="color: #fff;">{{ log.detail }}</span>
-            {% if log.user_id %}(USR_ID: {{ log.user_id }}){% endif %}
-        </div>
-        {% else %}
-        <div style="color: #555;">No logs recorded yet.</div>
-        {% endfor %}
-    </div>
     
     <div style="width: 100%; margin-top: 2rem;">
-        <h2 style="border-bottom: 1px solid var(--border-color); color: var(--text-main);">[STATISTICS] ACTIVE HACKERS</h2>
-        <table style="width: 100%; margin-top: 1rem; border-collapse: collapse;">
-            <thead>
-                <tr style="text-align: left; color: var(--text-alt);">
-                    <th style="padding: 0.5rem; border: 1px solid var(--border-color);">ID</th>
-                    <th style="padding: 0.5rem; border: 1px solid var(--border-color);">USERNAME</th>
-                    <th style="padding: 0.5rem; border: 1px solid var(--border-color);">NOTES_CREATED</th>
-                    <th style="padding: 0.5rem; border: 1px solid var(--border-color);">ACTION</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for u in users %}
-                <tr>
-                    <td style="padding: 0.5rem; border: 1px solid var(--border-color);">{{ u.id }}</td>
-                    <td style="padding: 0.5rem; border: 1px solid var(--border-color);">{{ u.username }}</td>
-                    <td style="padding: 0.5rem; border: 1px solid var(--border-color); font-size: 1.2rem; font-weight: bold; color: var(--accent);">{{ u.note_count }}</td>
-                    <td style="padding: 0.5rem; border: 1px solid var(--border-color);">
-                        {% if u.username != 'admin' %}
-                        <form action="{{ url_for('admin_delete_user', id=u.id) }}" method="POST" style="margin: 0;">
-                            <button type="submit" class="btn btn-danger" style="padding: 0.1rem 0.3rem; font-size: 0.8rem;">PURGE</button>
-                        </form>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-bottom: 1rem;">
+            <h2 style="margin: 0; color: var(--text-main);">[STATISTICS] ACTIVE HACKERS</h2>
+            <form action="{{ url_for('admin') }}" method="GET" style="display: flex; gap: 0.5rem; margin: 0;">
+                <input type="hidden" name="note_page" value="{{ note_page }}">
+                <input type="hidden" name="filter_user_id" value="{{ filter_user_id or '' }}">
+                <input type="text" name="search_user" value="{{ search_user }}" placeholder="Search username..." style="padding: 0.3rem; background: var(--bg-alt); color: var(--text-main); border: 1px solid var(--border-color);">
+                <button type="submit" class="btn btn-outline" style="padding: 0.3rem 0.6rem;">SEARCH</button>
+                {% if search_user %}
+                <a href="{{ url_for('admin') }}" class="btn btn-danger" style="padding: 0.3rem 0.6rem; text-decoration: none;">CLEAR</a>
+                {% endif %}
+            </form>
+        </div>
+        
+        <div style="max-height: 400px; overflow-y: auto; border: 1px solid var(--border-color);">
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead style="position: sticky; top: 0; background: var(--bg-main); z-index: 1;">
+                    <tr style="text-align: left; color: var(--text-alt);">
+                        <th style="padding: 0.5rem; border: 1px solid var(--border-color);">ID</th>
+                        <th style="padding: 0.5rem; border: 1px solid var(--border-color);">USERNAME</th>
+                        <th style="padding: 0.5rem; border: 1px solid var(--border-color);">NOTES_CREATED</th>
+                        <th style="padding: 0.5rem; border: 1px solid var(--border-color);">ACTION</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in users %}
+                    <tr>
+                        <td style="padding: 0.5rem; border: 1px solid var(--border-color);">{{ u.id }}</td>
+                        <td style="padding: 0.5rem; border: 1px solid var(--border-color);">{{ u.username }}</td>
+                        <td style="padding: 0.5rem; border: 1px solid var(--border-color); font-size: 1.2rem; font-weight: bold; color: var(--accent);">{{ u.note_count }}</td>
+                        <td style="padding: 0.5rem; border: 1px solid var(--border-color);">
+                            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                <a href="{{ url_for('admin', filter_user_id=u.id, search_user=search_user, user_page=user_page) }}" class="btn btn-outline" style="padding: 0.1rem 0.3rem; font-size: 0.8rem; text-decoration: none;">VIEW NOTES</a>
+                                {% if u.username != 'admin' %}
+                                <form action="{{ url_for('admin_delete_user', id=u.id) }}" method="POST" style="margin: 0;">
+                                    <button type="submit" class="btn btn-danger" style="padding: 0.1rem 0.3rem; font-size: 0.8rem;">PURGE</button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" style="padding: 1rem; text-align: center; color: var(--text-alt);">NO HACKERS FOUND</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- User Pagination Controls -->
+        {% if total_users > per_page %}
+        <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem;">
+            {% if user_page > 1 %}
+            <a href="{{ url_for('admin', user_page=user_page-1, search_user=search_user, filter_user_id=filter_user_id, note_page=note_page) }}" class="btn btn-outline" style="padding: 0.2rem 0.5rem; text-decoration: none;">&lt; PREV</a>
+            {% endif %}
+            <span style="color: var(--text-alt); align-self: center;">PAGE {{ user_page }} / {{ total_user_pages }}</span>
+            {% if (user_page * per_page) < total_users %}
+            <a href="{{ url_for('admin', user_page=user_page+1, search_user=search_user, filter_user_id=filter_user_id, note_page=note_page) }}" class="btn btn-outline" style="padding: 0.2rem 0.5rem; text-decoration: none;">NEXT &gt;</a>
+            {% endif %}
+        </div>
+        {% endif %}
     </div>
 
     <div style="width: 100%; margin-top: 3rem;">
-        <h2 style="border-bottom: 1px solid var(--border-color); color: var(--text-main);">TABLE: neo_notes</h2>
-        <table style="width: 100%; margin-top: 1rem; border-collapse: collapse;">
-            <thead>
-                <tr style="text-align: left; color: var(--text-alt);">
-                    <th style="padding: 0.5rem; border: 1px solid var(--border-color);">ID</th>
-                    <th style="padding: 0.5rem; border: 1px solid var(--border-color);">TITLE</th>
-                    <th style="padding: 0.5rem; border: 1px solid var(--border-color);">USER_ID</th>
-                    <th style="padding: 0.5rem; border: 1px solid var(--border-color);">SESSION_ID (GUEST)</th>
-                    <th style="padding: 0.5rem; border: 1px solid var(--border-color);">CREATED_AT</th>
-                    <th style="padding: 0.5rem; border: 1px solid var(--border-color);">ACTION</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for n in notes %}
-                <tr>
-                    <td style="padding: 0.5rem; border: 1px solid var(--border-color);">{{ n.id }}</td>
-                    <td style="padding: 0.5rem; border: 1px solid var(--border-color);">{{ n.title }}</td>
-                    <td style="padding: 0.5rem; border: 1px solid var(--border-color);">{{ n.user_id if n.user_id else 'NULL' }}</td>
-                    <td style="padding: 0.5rem; border: 1px solid var(--border-color); font-size: 0.8rem;">{{ n.session_id if n.session_id else 'NULL' }}</td>
-                    <td style="padding: 0.5rem; border: 1px solid var(--border-color);">{{ n.created_at }}</td>
-                    <td style="padding: 0.5rem; border: 1px solid var(--border-color);">
-                        <form action="{{ url_for('admin_delete_note', id=n.id) }}" method="POST" style="margin: 0;">
-                            <button type="submit" class="btn btn-danger" style="padding: 0.1rem 0.3rem; font-size: 0.8rem;">DELETE</button>
-                        </form>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-bottom: 1rem;">
+            <h2 style="margin: 0; color: var(--text-main);">TABLE: neo_notes {% if filter_user_id %} <span style="color: var(--accent); font-size: 1rem;">[FILTERED BY USER ID: {{ filter_user_id }}]</span> <a href="{{ url_for('admin', search_user=search_user, user_page=user_page) }}" style="color: var(--danger); font-size: 0.9rem; margin-left: 1rem;">[ CLEAR FILTER ]</a> {% endif %}</h2>
+        </div>
+        
+        <div style="max-height: 400px; overflow-y: auto; border: 1px solid var(--border-color);">
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead style="position: sticky; top: 0; background: var(--bg-main); z-index: 1;">
+                    <tr style="text-align: left; color: var(--text-alt);">
+                        <th style="padding: 0.5rem; border: 1px solid var(--border-color);">ID</th>
+                        <th style="padding: 0.5rem; border: 1px solid var(--border-color);">TITLE</th>
+                        <th style="padding: 0.5rem; border: 1px solid var(--border-color);">USERNAME (ID)</th>
+                        <th style="padding: 0.5rem; border: 1px solid var(--border-color);">SESSION_ID (GUEST)</th>
+                        <th style="padding: 0.5rem; border: 1px solid var(--border-color);">CREATED_AT</th>
+                        <th style="padding: 0.5rem; border: 1px solid var(--border-color);">ACTION</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for n in notes %}
+                    <tr>
+                        <td style="padding: 0.5rem; border: 1px solid var(--border-color);">{{ n.id }}</td>
+                        <td style="padding: 0.5rem; border: 1px solid var(--border-color);">{{ n.title }}</td>
+                        <td style="padding: 0.5rem; border: 1px solid var(--border-color);">
+                            {% if n.username %}
+                                <span style="color: var(--accent);">{{ n.username }}</span> ({{ n.user_id }})
+                            {% else %}
+                                <span style="color: var(--text-alt);">GUEST</span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 0.5rem; border: 1px solid var(--border-color); font-size: 0.8rem;">{{ n.session_id if n.session_id else 'NULL' }}</td>
+                        <td style="padding: 0.5rem; border: 1px solid var(--border-color);">{{ n.created_at }}</td>
+                        <td style="padding: 0.5rem; border: 1px solid var(--border-color);">
+                            <form action="{{ url_for('admin_delete_note', id=n.id) }}" method="POST" style="margin: 0;">
+                                <button type="submit" class="btn btn-danger" style="padding: 0.1rem 0.3rem; font-size: 0.8rem;">DELETE</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" style="padding: 1rem; text-align: center; color: var(--text-alt);">NO NOTES FOUND</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Notes Pagination Controls -->
+        {% if total_notes > per_page %}
+        <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem;">
+            {% if note_page > 1 %}
+            <a href="{{ url_for('admin', note_page=note_page-1, search_user=search_user, filter_user_id=filter_user_id, user_page=user_page) }}" class="btn btn-outline" style="padding: 0.2rem 0.5rem; text-decoration: none;">&lt; PREV</a>
+            {% endif %}
+            <span style="color: var(--text-alt); align-self: center;">PAGE {{ note_page }} / {{ total_note_pages }}</span>
+            {% if (note_page * per_page) < total_notes %}
+            <a href="{{ url_for('admin', note_page=note_page+1, search_user=search_user, filter_user_id=filter_user_id, user_page=user_page) }}" class="btn btn-outline" style="padding: 0.2rem 0.5rem; text-decoration: none;">NEXT &gt;</a>
+            {% endif %}
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

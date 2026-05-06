@@ -3,135 +3,788 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>THE WIRED</title>
+    <title>THE WIRED — Network Topology</title>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&family=Courier+Prime&display=swap" rel="stylesheet">
     <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
         body {
-            margin: 0;
             overflow: hidden;
-            background-color: #020202;
             font-family: 'Courier Prime', monospace;
+            cursor: crosshair;
         }
+
+        /* ===== DARK THEME ===== */
+        body.dark-theme {
+            --bg: #0a0e1a;
+            --node-core: #ff003c;
+            --node-shell: #1a1a2e;
+            --node-stroke: #cc0000;
+            --node-glow-color: 255, 0, 60;
+            --iso-color: #444444;
+            --link-color: #cc0000;
+            --junction-color: #ffffff;
+            --text-color: #c8c8c0;
+            --text-dim: #666666;
+            --hud-bg: rgba(6, 10, 20, 0.88);
+            --hud-border: rgba(200, 0, 0, 0.5);
+            --hud-accent: #ff003c;
+            --grid-color: rgba(80, 120, 200, 0.04);
+            --grid-strong: rgba(80, 120, 200, 0.08);
+        }
+
+        /* ===== LIGHT THEME ===== */
+        body.light-theme {
+            --bg: #d0d0c8;
+            --node-core: #cc0000;
+            --node-shell: #2a2a2a;
+            --node-stroke: #444444;
+            --node-glow-color: 200, 0, 0;
+            --iso-color: #888888;
+            --link-color: #777777;
+            --junction-color: #ffffff;
+            --text-color: #222222;
+            --text-dim: #888888;
+            --hud-bg: rgba(208, 208, 200, 0.92);
+            --hud-border: rgba(0, 0, 0, 0.2);
+            --hud-accent: #cc0000;
+            --grid-color: rgba(0, 0, 0, 0.05);
+            --grid-strong: rgba(0, 0, 0, 0.1);
+        }
+
         #graph-container {
             width: 100vw;
             height: 100vh;
-        }
-        /* Subtle Scanlines */
-        body::after {
-            content: "";
             position: absolute;
-            top: 0; left: 0; bottom: 0; right: 0;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.2) 50%);
-            background-size: 100% 4px;
-            z-index: 999;
+            top: 0; left: 0;
+        }
+
+        /* ===== BACKGROUND GRID ===== */
+        .grid-bg {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
             pointer-events: none;
+            z-index: 0;
+            background-image:
+                linear-gradient(var(--grid-color) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid-color) 1px, transparent 1px),
+                linear-gradient(var(--grid-strong) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid-strong) 1px, transparent 1px);
+            background-size: 25px 25px, 25px 25px, 125px 125px, 125px 125px;
         }
-        .terminate-btn {
-            position: absolute;
-            top: 20px;
-            right: 20px;
+
+        /* ===== CRT VIGNETTE ===== */
+        .crt-vignette {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: radial-gradient(circle at center, transparent 50%, rgba(0,0,0,0.55) 100%);
+            pointer-events: none;
+            z-index: 900;
+        }
+
+        /* ===== SCANLINES ===== */
+        .scanlines {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.05) 2px, rgba(0,0,0,0.05) 4px);
+            pointer-events: none;
+            z-index: 901;
+        }
+
+        /* ===== HUD ===== */
+        .hud-panel {
+            position: fixed;
             z-index: 1000;
-            background: transparent;
-            color: #b8b8b8;
-            border: 1px solid #333;
-            padding: 5px 15px;
-            font-family: 'Courier Prime', monospace;
-            cursor: pointer;
-            pointer-events: auto;
-            text-decoration: none;
-            transition: all 0.2s;
+            background: var(--hud-bg);
+            border: 1px solid var(--hud-border);
+            font-family: 'VT323', monospace;
+            backdrop-filter: blur(6px);
         }
-        .terminate-btn:hover {
-            color: #ff003c;
-            border-color: #ff003c;
-            text-shadow: 0 0 5px #ff003c;
-            background: rgba(255, 0, 60, 0.1);
+        .hud-topleft {
+            top: 16px; left: 16px;
+            padding: 14px 20px;
+            min-width: 200px;
+        }
+        .hud-title {
+            font-size: 1.5rem;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            color: var(--hud-accent);
+            margin-bottom: 8px;
+        }
+        .hud-stat {
+            font-size: 0.9rem;
+            color: var(--text-color);
+            opacity: 0.7;
+            letter-spacing: 1px;
+            line-height: 1.6;
+        }
+        .hud-stat span { color: var(--hud-accent); font-weight: bold; }
+
+        .hud-topright {
+            top: 16px; right: 16px;
+            padding: 6px;
+            display: flex;
+            gap: 4px;
+        }
+        .hud-btn {
+            background: transparent;
+            color: var(--text-color);
+            border: 1px solid var(--hud-border);
+            padding: 8px 16px;
+            font-family: 'VT323', monospace;
+            font-size: 1rem;
+            cursor: pointer;
+            text-decoration: none;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        .hud-btn:hover {
+            background: var(--hud-accent);
+            color: #000;
+            border-color: var(--hud-accent);
+        }
+
+        .hud-left-panel {
+            top: 120px; left: 16px;
+            padding: 14px;
+            width: 250px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .hud-right-panel {
+            top: 70px; right: 16px;
+            padding: 14px;
+            width: 250px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .hud-label {
+            color: var(--hud-accent);
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+        .hud-input {
+            background: rgba(0,0,0,0.5);
+            border: 1px solid var(--hud-border);
+            color: var(--text-color);
+            padding: 6px 10px;
+            font-family: 'VT323', monospace;
+            font-size: 1rem;
+            width: 100%;
+            outline: none;
+        }
+        .hud-input:focus { border-color: var(--hud-accent); }
+        .hud-slider {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 4px;
+            background: var(--hud-border);
+            outline: none;
+            margin-top: 6px;
+        }
+        .hud-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 12px;
+            height: 12px;
+            background: var(--hud-accent);
+            cursor: pointer;
+        }
+        .toggle-row {
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 0.9rem; color: var(--text-color);
+        }
+        .toggle-checkbox { accent-color: var(--hud-accent); }
+
+        .hud-bottom {
+            bottom: 16px; left: 50%;
+            transform: translateX(-50%);
+            padding: 8px 24px;
+            display: flex;
+            gap: 28px;
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-transform: uppercase;
+            color: var(--text-dim);
+        }
+        .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+        .legend-dot.connected { background: var(--node-core); box-shadow: 0 0 6px var(--node-core); }
+        .legend-dot.isolated { background: var(--iso-color); }
+        .legend-line { width: 24px; height: 2px; background: var(--link-color); }
+
+        .node-tooltip {
+            bottom: 56px; left: 50%;
+            transform: translateX(-50%);
+            padding: 10px 20px;
+            text-align: center;
+            display: none;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+        .node-tooltip.show { display: block; }
+        .tt-title { color: var(--hud-accent); font-size: 1.2rem; letter-spacing: 3px; text-transform: uppercase; }
+        .tt-sub { color: var(--text-dim); font-size: 0.8rem; letter-spacing: 1px; margin-top: 2px; }
+
+        .empty-state {
+            position: fixed; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center; z-index: 500;
+            font-family: 'VT323', monospace;
+            color: var(--text-dim); letter-spacing: 2px;
+        }
+        .empty-state h2 { font-size: 2rem; color: var(--hud-accent); margin-bottom: 12px; }
+        .empty-state p { font-size: 1rem; line-height: 1.8; }
+
+        /* Size legend */
+        .size-legend {
+            position: fixed;
+            bottom: 50px; right: 16px;
+            z-index: 1000;
+            font-family: 'VT323', monospace;
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: flex-end;
+            gap: 6px;
+        }
+        .size-dot {
+            border-radius: 50%;
+            border: 1px solid var(--node-stroke);
+            background: var(--node-shell);
+        }
+
+        /* Context Menu */
+        .context-menu {
+            position: absolute;
+            background: var(--hud-bg);
+            border: 1px solid var(--hud-accent);
+            padding: 8px 0;
+            display: none;
+            z-index: 2000;
+            font-family: 'VT323', monospace;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        }
+        .context-menu-item {
+            padding: 6px 16px;
+            color: var(--text-color);
+            cursor: pointer;
+            font-size: 1.1rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        .context-menu-item:hover {
+            background: var(--hud-accent);
+            color: #000;
         }
     </style>
-    <!-- Dependencies — pinned versions to prevent multiple THREE imports -->
+
     <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
     <script src="https://unpkg.com/three-spritetext@1.8.2/dist/three-spritetext.min.js"></script>
     <script src="https://unpkg.com/3d-force-graph@1.73.3/dist/3d-force-graph.min.js"></script>
 </head>
-<body>
-    
-    <a href="{{ url_for('index') }}" class="terminate-btn">[ DISCONNECT ]</a>
+<body class="light-theme">
+
     <div id="graph-container"></div>
+    <div class="grid-bg"></div>
+
+    <!-- HUD -->
+    <div class="hud-panel hud-topleft">
+        <div class="hud-title">⬡ THE WIRED</div>
+        <div class="hud-stat">NODES: <span id="node-count">0</span></div>
+        <div class="hud-stat">SYNAPSES: <span id="link-count">0</span></div>
+    </div>
+    <div class="hud-panel hud-topright">
+        <button class="hud-btn" onclick="toggleTheme()">◐ THEME</button>
+        <a href="{{ url_for('index') }}" class="hud-btn">✕ DISCONNECT</a>
+        
+    </div>
+    
+    <div class="hud-panel hud-left-panel">
+        <div>
+            <div class="hud-label">SEARCH NODES</div>
+            <input type="text" id="search-input" class="hud-input" placeholder="> enter query..." autocomplete="off">
+        </div>
+        <div class="toggle-row">
+            <span>SHOW ISOLATED</span>
+            <input type="checkbox" id="toggle-isolated" class="toggle-checkbox" checked>
+        </div>
+    </div>
+
+    <div class="hud-panel hud-right-panel">
+        <div>
+            <div class="hud-label">REPEL FORCE [ <span id="val-repel">80</span> ]</div>
+            <input type="range" id="slider-repel" class="hud-slider" min="10" max="300" value="80">
+        </div>
+        <div>
+            <div class="hud-label">LINK DISTANCE [ <span id="val-link">30</span> ]</div>
+            <input type="range" id="slider-link" class="hud-slider" min="10" max="100" value="30">
+        </div>
+        <div>
+            <div class="hud-label">RADIAL GRAVITY [ <span id="val-radial">30</span> ]</div>
+            <input type="range" id="slider-radial" class="hud-slider" min="0" max="100" value="30">
+        </div>
+        <button class="hud-btn" onclick="resetFocus()" style="margin-top: 10px; font-size: 0.85rem; padding: 4px;">RESET CAMERA</button>
+    </div>
+    <div class="hud-panel hud-bottom">
+        <div class="legend-item"><div class="legend-dot connected"></div> CONNECTED</div>
+        <div class="legend-item"><div class="legend-dot isolated"></div> ISOLATED</div>
+        <div class="legend-item"><div class="legend-line"></div> SYNAPSE</div>
+        <div class="legend-item" style="opacity:0.4;">CLICK: FOCUS | DBL-CLICK: EDIT</div>
+    </div>
+    <div class="hud-panel node-tooltip" id="node-tooltip">
+        <div class="tt-title" id="tt-title"></div>
+        <div class="tt-sub" id="tt-sub"></div>
+    </div>
+    <div class="empty-state" id="empty-state" style="display:none;">
+        <h2>NO NODES DETECTED</h2>
+        <p>Create notes to build your network.<br>Use [[Note Title]] inside a note to create connections.</p>
+    </div>
+
+    <!-- Size legend -->
+    <div class="size-legend">
+        <div class="size-dot" style="width:8px;height:8px;"></div>
+        <div class="size-dot" style="width:14px;height:14px;"></div>
+        <div class="size-dot" style="width:22px;height:22px;"></div>
+        <span>= CONTENT SIZE</span>
+    </div>
+
+    <!-- Context Menu -->
+    <div class="context-menu" id="context-menu">
+        <div class="context-menu-item" id="cm-open">OPEN NOTE</div>
+        <div class="context-menu-item" id="cm-focus">FOCUS NODE</div>
+    </div>
+
+    <!-- CRT -->
+    <div class="crt-vignette"></div>
+    <div class="scanlines"></div>
 
     <script>
+        let isDark = false;
+        let Graph = null;
+        let graphDataOrig = null;
+
+        let focusMode = false;
+        let highlightNodes = new Set();
+        let highlightLinks = new Set();
+        let hoverNode = null;
+        let clickTimeout = null;
+        let searchQuery = "";
+        let showIsolated = true;
+
+        // ===== HUD LOGIC =====
+        function updateFilter() {
+            if (!Graph) return;
+            const filteredNodes = graphDataOrig.nodes.filter(n => showIsolated || n._connected);
+            const validNodeIds = new Set(filteredNodes.map(n => n.id));
+            const filteredLinks = graphDataOrig.links.filter(l => 
+                validNodeIds.has(typeof l.source === 'object' ? l.source.id : l.source) && 
+                validNodeIds.has(typeof l.target === 'object' ? l.target.id : l.target)
+            );
+            Graph.graphData({ nodes: filteredNodes, links: filteredLinks });
+            updateHighlights();
+        }
+
+        document.getElementById('search-input').addEventListener('input', e => {
+            searchQuery = e.target.value.toLowerCase();
+            updateHighlights();
+        });
+        document.getElementById('toggle-isolated').addEventListener('change', e => {
+            showIsolated = e.target.checked;
+            updateFilter();
+        });
+
+        // Sliders
+        document.getElementById('slider-repel').addEventListener('input', e => {
+            document.getElementById('val-repel').textContent = e.target.value;
+            if (Graph) { Graph.d3Force('charge').strength(-e.target.value); Graph.d3ReheatSimulation(); }
+        });
+        document.getElementById('slider-link').addEventListener('input', e => {
+            document.getElementById('val-link').textContent = e.target.value;
+            if (Graph) { Graph.d3Force('link').distance(e.target.value); Graph.d3ReheatSimulation(); }
+        });
+        let radialGravity = 30;
+        document.getElementById('slider-radial').addEventListener('input', e => {
+            document.getElementById('val-radial').textContent = e.target.value;
+            radialGravity = parseInt(e.target.value);
+        });
+
+        // ===== CAMERA & FOCUS =====
+        function focusNode(node) {
+            if (focusMode && hoverNode === node) { resetFocus(); return; }
+            focusMode = true;
+            hoverNode = node;
+            highlightNodes.clear();
+            highlightLinks.clear();
+            
+            highlightNodes.add(node.id);
+            Graph.graphData().links.forEach(link => {
+                const srcId = typeof link.source === 'object' ? link.source.id : link.source;
+                const tgtId = typeof link.target === 'object' ? link.target.id : link.target;
+                if (srcId === node.id || tgtId === node.id) {
+                    highlightLinks.add(link);
+                    highlightNodes.add(srcId);
+                    highlightNodes.add(tgtId);
+                }
+            });
+
+            const distance = 100;
+            const distRatio = 1 + distance/Math.hypot(node.x || 1, node.y || 1, node.z || 1);
+            Graph.cameraPosition(
+                { x: node.x * distRatio, y: node.y * distRatio, z: node.z * distRatio }, 
+                node, 
+                1000  
+            );
+            updateHighlights();
+        }
+
+        function resetFocus() {
+            focusMode = false;
+            hoverNode = null;
+            highlightNodes.clear();
+            highlightLinks.clear();
+            updateHighlights();
+        }
+
+        function updateHighlights() {
+            if(!Graph) return;
+            // Force node and link re-render
+            Graph.nodeThreeObject(Graph.nodeThreeObject());
+            Graph.linkColor(Graph.linkColor()).linkWidth(Graph.linkWidth());
+        }
+
+        // ===== SIZE CALCULATION =====
+        // Min node radius: 2, Max node radius: 10
+        // Based on content length (characters)
+        const MIN_SIZE = 8;
+        const MAX_SIZE = 18;
+        const SIZE_SCALE_CHARS = 1500;
+
+        function calcNodeSize(contentLength) {
+            const t = Math.min(contentLength / SIZE_SCALE_CHARS, 1);
+            return MIN_SIZE + t * (MAX_SIZE - MIN_SIZE);
+        }
+
+        // ===== TAG COLORS =====
+        const TAG_COLORS = {
+            'red': '#ff003c', 'blue': '#0088ff', 'green': '#00ff88',
+            'yellow': '#ffcc00', 'purple': '#bb86fc', 'cyan': '#00ffff',
+            'orange': '#ff8800', 'pink': '#ff00ff'
+        };
+        function nodeColor(node, defaultColor) {
+            const tag = (node.tags || [])[0];
+            return tag && TAG_COLORS[tag.toLowerCase()] ? TAG_COLORS[tag.toLowerCase()] : defaultColor;
+        }
+
+        // ===== THEME =====
+        function getColors() {
+            const s = getComputedStyle(document.body);
+            const g = v => s.getPropertyValue(v).trim();
+            return {
+                bg: g('--bg'),
+                nodeCore: g('--node-core'),
+                nodeShell: g('--node-shell'),
+                nodeStroke: g('--node-stroke'),
+                nodeGlowColor: g('--node-glow-color'),
+                isoColor: g('--iso-color'),
+                linkColor: g('--link-color'),
+                junctionColor: g('--junction-color'),
+                textColor: g('--text-color'),
+                textDim: g('--text-dim'),
+            };
+        }
+
+        function toggleTheme() {
+            isDark = !isDark;
+            document.body.className = isDark ? 'dark-theme' : 'light-theme';
+            if (Graph) {
+                const c = getColors();
+                Graph.backgroundColor(c.bg);
+                // Force re-render all nodes
+                Graph.nodeThreeObject(Graph.nodeThreeObject());
+                Graph.linkColor(() => c.linkColor);
+            }
+        }
+
+        // ===== BUILD =====
         fetch('/api/graph_data')
             .then(res => res.json())
             .then(data => {
+                graphDataOrig = data;
+                if (data.nodes.length === 0) {
+                    document.getElementById('empty-state').style.display = 'block';
+                    const c = getColors();
+                    // Still render empty graph for the background
+                    ForceGraph3D()(document.getElementById('graph-container'))
+                        .graphData({nodes:[], links:[]})
+                        .backgroundColor(c.bg);
+                    return;
+                }
+
+                // Determine connected nodes
+                const connectedIds = new Set();
+                data.links.forEach(l => {
+                    connectedIds.add(l.source);
+                    connectedIds.add(l.target);
+                });
+
+                // Mark nodes & calculate sizes
+                data.nodes.forEach(n => {
+                    n._connected = connectedIds.has(n.id);
+                    n._size = calcNodeSize(Math.max((n.val - 1) * 100, 10)); // at least 10 chars
+                });
+
+                document.getElementById('node-count').textContent = data.nodes.length;
+                document.getElementById('link-count').textContent = data.links.length;
+
+                const saved = JSON.parse(localStorage.getItem('wired_positions') || '{}');
+                data.nodes.forEach(n => {
+                    if(saved[n.id]) {
+                        n.x = saved[n.id].x;
+                        n.y = saved[n.id].y;
+                        n.z = saved[n.id].z;
+                    }
+                });
+
+                const c = getColors();
                 const elem = document.getElementById('graph-container');
-                
-                const Graph = ForceGraph3D()(elem)
+
+                Graph = ForceGraph3D()(elem)
                     .graphData(data)
-                    .backgroundColor('#020202') // Pitch black void
-                    .linkColor(() => '#0055ff') // Deep cyberpunk blue links
-                    .linkWidth(1.5)
-                    .linkDirectionalParticles(2)
-                    .linkDirectionalParticleWidth(2.5)
-                    .linkDirectionalParticleColor(() => '#00ffff') // Cyan data packets
-                    .linkDirectionalParticleSpeed(0.005)
-                    
-                    // Custom Three.js Node Rendering
+                    .backgroundColor(c.bg)
+
+                    // Links — solid lines, no particles
+                    .linkColor(link => {
+                        if (!focusMode && !searchQuery) return c.linkColor;
+                        if (focusMode && highlightLinks.has(link)) return '#ff003c';
+                        return 'rgba(100,100,100,0.1)';
+                    })
+                    .linkWidth(link => {
+                        if (!focusMode && !searchQuery) return 2;
+                        return highlightLinks.has(link) ? 3 : 1;
+                    })
+                    .linkOpacity(0.8)
+
+                    // Custom 3D nodes
                     .nodeThreeObject(node => {
-                        // Create a Three.js Group to hold both geometry and text
+                        const col = getColors();
+                        const isConn = node._connected;
+                        const size = node._size;
                         const group = new THREE.Group();
+
+                        // Dimming logic
+                        let isHighlighted = false;
+                        if (focusMode) {
+                            isHighlighted = highlightNodes.has(node.id);
+                        } else if (searchQuery) {
+                            isHighlighted = node.name.toLowerCase().includes(searchQuery);
+                        } else {
+                            isHighlighted = true;
+                        }
                         
-                        // 1. Wireframe Icosahedron (Lain/Evangelion aesthetic)
-                        const size = 3 + (node.val * 0.5); // Scale node by content length
-                        const geometry = new THREE.IcosahedronGeometry(size, 0); // 0 detail = sharp angles
-                        const material = new THREE.MeshBasicMaterial({ 
-                            color: '#ff003c', // Aggressive Red
-                            wireframe: true,
-                            transparent: true,
-                            opacity: 0.9
-                        });
-                        const mesh = new THREE.Mesh(geometry, material);
-                        group.add(mesh);
-                        
-                        // 2. Persistent SpriteText Label (Obsidian style)
-                        const sprite = new SpriteText(node.name);
-                        sprite.color = '#b8b8b8'; // Muted grey text
-                        sprite.textHeight = 3.5;
-                        sprite.position.y = -(size + 4); // Position text directly below the node
+                        const opacityMult = isHighlighted ? 1.0 : 0.1;
+
+                        if (isConn) {
+                            // === CONNECTED: Solid dark hexagonal prism with glowing core ===
+                            const shellGeo = new THREE.CylinderGeometry(size, size, size * 0.6, 6);
+                            const shellMat = new THREE.MeshBasicMaterial({
+                                color: col.nodeShell, transparent: true, opacity: 0.85 * opacityMult
+                            });
+                            const shell = new THREE.Mesh(shellGeo, shellMat);
+                            shell.rotation.x = Math.PI / 2;
+                            group.add(shell);
+
+                            const edgeGeo = new THREE.EdgesGeometry(shellGeo);
+                            const edgeMat = new THREE.LineBasicMaterial({ color: col.nodeStroke, transparent: true, opacity: opacityMult, linewidth: 1 });
+                            const edges = new THREE.LineSegments(edgeGeo, edgeMat);
+                            edges.rotation.x = Math.PI / 2;
+                            group.add(edges);
+
+                            const coreGeo = new THREE.SphereGeometry(size * 0.3, 16, 16);
+                            const coreColor = nodeColor(node, col.nodeCore);
+                            const coreMat = new THREE.MeshBasicMaterial({ color: coreColor, transparent: true, opacity: opacityMult });
+                            const core = new THREE.Mesh(coreGeo, coreMat);
+                            group.add(core);
+
+                            const glowGeo = new THREE.SphereGeometry(size * 0.7, 16, 16);
+                            const glowMat = new THREE.MeshBasicMaterial({ color: coreColor, transparent: true, opacity: 0.08 * opacityMult });
+                            group.add(new THREE.Mesh(glowGeo, glowMat));
+
+                            const jGeo = new THREE.SphereGeometry(0.8, 8, 8);
+                            const jMat = new THREE.MeshBasicMaterial({ color: col.junctionColor, transparent: true, opacity: opacityMult });
+                            const jDot = new THREE.Mesh(jGeo, jMat);
+                            jDot.position.y = size * 0.5;
+                            group.add(jDot);
+
+                        } else {
+                            // === ISOLATED: Small dim octahedron ===
+                            const isoGeo = new THREE.OctahedronGeometry(size * 0.6, 0);
+                            const isoMat = new THREE.MeshBasicMaterial({
+                                color: col.isoColor, transparent: true, opacity: 0.4 * opacityMult, wireframe: true
+                            });
+                            group.add(new THREE.Mesh(isoGeo, isoMat));
+                        }
+
+                        // Label below node
+                        const sprite = new SpriteText(node.name.toUpperCase());
+                        sprite.color = isConn ? col.textColor : col.textDim;
+                        if (!isHighlighted) sprite.color = 'rgba(100,100,100,0.2)';
+                        sprite.textHeight = Math.max(2, size * 0.4);
+                        sprite.fontFace = 'Courier Prime';
+                        sprite.position.y = -(size * 0.5 + 3);
                         group.add(sprite);
-                        
+
                         return group;
                     })
-                    
-                    // Add simple rotation to the nodes to make the wireframes look dynamic
-                    .onEngineTick(() => {
-                        const nodes = Graph.graphData().nodes;
-                        nodes.forEach(node => {
-                            if (node.__threeObj && node.__threeObj.children[0]) {
-                                // Rotate the wireframe mesh (first child of the group)
-                                node.__threeObj.children[0].rotation.x += 0.01;
-                                node.__threeObj.children[0].rotation.y += 0.01;
-                            }
-                        });
-                    })
-                    
+
                     .onNodeClick(node => {
-                        window.location.href = '/edit/' + node.id;
-                    })
-                    .onNodeHover(node => {
-                        elem.style.cursor = node ? 'crosshair' : 'default';
-                        
-                        // Highlight text on hover
-                        if (node && node.__threeObj && node.__threeObj.children[1]) {
-                            node.__threeObj.children[1].color = '#00ffff'; // Text turns cyan on hover
+                        if (clickTimeout) {
+                            clearTimeout(clickTimeout);
+                            clickTimeout = null;
+                            window.location.href = '/edit/' + node.id;
                         } else {
-                            // Reset all text colors when not hovering
-                            Graph.graphData().nodes.forEach(n => {
-                                if (n.__threeObj && n.__threeObj.children[1]) {
-                                    n.__threeObj.children[1].color = '#b8b8b8';
-                                }
-                            });
+                            clickTimeout = setTimeout(() => {
+                                clickTimeout = null;
+                                focusNode(node);
+                            }, 250);
+                        }
+                    })
+                    .onNodeRightClick((node, event) => {
+                        const menu = document.getElementById('context-menu');
+                        menu.style.display = 'block';
+                        menu.style.left = event.clientX + 'px';
+                        menu.style.top = event.clientY + 'px';
+                        
+                        document.getElementById('cm-open').onclick = () => {
+                            menu.style.display = 'none';
+                            window.location.href = '/edit/' + node.id;
+                        };
+                        document.getElementById('cm-focus').onclick = () => {
+                            menu.style.display = 'none';
+                            focusNode(node);
+                        };
+                    })
+                    .onBackgroundClick(() => {
+                        resetFocus();
+                        document.getElementById('context-menu').style.display = 'none';
+                    })
+
+                    .onNodeHover(node => {
+                        elem.style.cursor = node ? 'pointer' : 'crosshair';
+                        const tooltip = document.getElementById('node-tooltip');
+                        if (node) {
+                            document.getElementById('tt-title').textContent = node.name;
+                            document.getElementById('tt-sub').textContent = node._connected
+                                ? '[ CONNECTED · CLICK TO EDIT ]'
+                                : '[ ISOLATED · CLICK TO EDIT ]';
+                            tooltip.classList.add('show');
+                        } else {
+                            tooltip.classList.remove('show');
+                        }
+                    })
+
+                    .d3AlphaDecay(0.015)
+                    .d3VelocityDecay(0.25)
+                    .warmupTicks(100)
+                    .cooldownTicks(300);
+
+                // Sphere layout: pull nodes toward a spherical shell
+                const sphereRadius = 60 + data.nodes.length * 3; // grows with node count
+                Graph.d3Force('charge').strength(-80);
+                Graph.d3Force('link').distance(30);
+
+                // Custom radial force — attracts nodes to the surface of a sphere
+                // This works in 3D because 3d-force-graph uses d3-force-3d
+                Graph.d3Force('radial', d3Force => {
+                    // d3-force-3d forceRadial not available as method,
+                    // so we manually apply a radial pull each tick
+                });
+
+                // Manual sphere force via onEngineTick — push nodes toward sphereRadius
+                const clusterCenters = {};
+                
+                Graph.onEngineStop(() => {
+                    const positions = {};
+                    Graph.graphData().nodes.forEach(n => {
+                        positions[n.id] = { x: n.x, y: n.y, z: n.z };
+                    });
+                    localStorage.setItem('wired_positions', JSON.stringify(positions));
+                });
+
+                Graph.onEngineTick(() => {
+                    const nodes = Graph.graphData().nodes;
+                    
+                    // Folder Clustering: calculate centers
+                    const folderSums = {};
+                    const folderCounts = {};
+                    nodes.forEach(n => {
+                        if(n.folder_id) {
+                            if(!folderSums[n.folder_id]) { folderSums[n.folder_id] = {x:0, y:0, z:0}; folderCounts[n.folder_id] = 0; }
+                            folderSums[n.folder_id].x += n.x;
+                            folderSums[n.folder_id].y += n.y;
+                            folderSums[n.folder_id].z += n.z;
+                            folderCounts[n.folder_id]++;
                         }
                     });
+                    Object.keys(folderSums).forEach(id => {
+                        clusterCenters[id] = {
+                            x: folderSums[id].x / folderCounts[id],
+                            y: folderSums[id].y / folderCounts[id],
+                            z: folderSums[id].z / folderCounts[id]
+                        };
+                    });
+
+                    // Apply sphere force
+                    nodes.forEach(node => {
+                        const dist = Math.sqrt(node.x * node.x + node.y * node.y + node.z * node.z) || 1;
+                        const force = (sphereRadius - dist) * (radialGravity / 1000); // spring toward sphere surface
+                        node.vx += (node.x / dist) * force;
+                        node.vy += (node.y / dist) * force;
+                        node.vz += (node.z / dist) * force;
+
+                        // Apply cluster force
+                        if(node.folder_id && clusterCenters[node.folder_id]) {
+                            const center = clusterCenters[node.folder_id];
+                            node.vx -= (node.x - center.x) * 0.01;
+                            node.vy -= (node.y - center.y) * 0.01;
+                            node.vz -= (node.z - center.z) * 0.01;
+                        }
+                    });
+
+                    // Rotate hexagonal shells
+                    Graph.graphData().nodes.forEach(node => {
+                        if (node.__threeObj && node._connected) {
+                            const shell = node.__threeObj.children[0];
+                            const edge = node.__threeObj.children[1];
+                            if (shell) shell.rotation.z += 0.004;
+                            if (edge) edge.rotation.z += 0.004;
+                        }
+                        if (node.__threeObj && !node._connected) {
+                            const iso = node.__threeObj.children[0];
+                            if (iso) {
+                                iso.rotation.x += 0.005;
+                                iso.rotation.z += 0.003;
+                            }
+                        }
+                    });
+                });
+
+                // Auto-zoom to fit
+                setTimeout(() => {
+                    Graph.zoomToFit(600, 80);
+                }, 700);
             })
-            .catch(err => console.error(err));
+            .catch(err => console.error('WIRED ERROR:', err));
     </script>
 </body>
 </html>

@@ -1,0 +1,202 @@
+\documentclass[12pt,a4paper]{report}
+\usepackage[utf8]{inputenc}
+\usepackage{geometry}
+\geometry{a4paper, margin=1in}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{titlesec}
+\usepackage{minted}
+
+\titleformat{\chapter}[display]{\normalfont\huge\bfseries}{\chaptertitlename\ \thechapter}{20pt}{\Huge}
+\titlespacing*{\chapter}{0pt}{-50pt}{40pt}
+
+\begin{document}
+
+% ------------------- Title Page -------------------
+\begin{titlepage}
+    \centering
+    \vspace*{2cm}
+    
+    {\Large \textbf{CS1211 DATABASE MANAGEMENT SYSTEM}} \\
+    \vspace{0.5cm}
+    {\Large \textbf{Mini Project Report}} \\
+    
+    \vspace{2.5cm}
+    {\huge \textbf{NeoNotes: A Neo-Mythic CyberCore Notes Application}} \\
+    
+    \vspace{3cm}
+    \textbf{Submitted By:} \\
+    Student Name 1 (USN) \\
+    Student Name 2 (USN) \\
+    Student Name 3 (USN) \\
+    
+    \vspace{2cm}
+    \textbf{Under the guidance of:} \\
+    Dr./Prof. [Faculty Name] \\
+    
+    \vfill
+    \textbf{School of Computer Science and Engineering} \\
+    \textbf{RV University, Bangalore} \\
+    \vspace{1cm}
+\end{titlepage}
+
+% ------------------- Certificate -------------------
+\newpage
+\begin{center}
+    \textbf{School of Computer Science and Engineering} \\
+    \vspace{1cm}
+    {\Large \textbf{CERTIFICATE}}
+\end{center}
+\vspace{1cm}
+\noindent Certified that the CS1211 Database Management Systems Mini Project work titled \textbf{NeoNotes: A Neo-Mythic CyberCore Notes Application} is carried out by \textbf{[Names]} \textbf{[USN]} who are bonafide students of the School of Computer Science and Engineering, RV University, Bengaluru, during the year 2025--26. \\
+
+\noindent It is certified that all corrections/suggestions from all the continuous internal evaluations have been incorporated into the project and in this report.
+
+\vspace{3cm}
+\noindent Dr./ Prof. \underline{\hspace{4cm}} \hfill \underline{\hspace{4cm}} \\
+\noindent \textbf{Faculty Guide} \hfill \textbf{Program Director}
+
+% ------------------- Abstract -------------------
+\newpage
+\begin{abstract}
+\noindent \textbf{Problem Statement:} Traditional note-taking applications often lack immersive visual organization and fail to provide a seamless transition from transient guest sessions to authenticated user accounts. \\
+\textbf{Objectives:} To build a secure, ACID-compliant database application that supports complex Markdown rendering, dynamic tagging, seamless guest-to-user session transfer, and an interactive 3D network topology visualization.\\
+\textbf{Methodology:} Developed a monolithic full-stack web application using Flask, anchored by a fully normalized MySQL database utilizing SQLAlchemy ORM and raw SQL executions. \\
+\textbf{Tools used:} Python, Flask, MySQL, SQLAlchemy, Vanilla JS, Marked.js. \\
+\textbf{Key outcomes:} Successfully implemented an advanced DBMS project featuring Views, Triggers, Stored Procedures, and explicitly locked ACID Transactions ensuring absolute data integrity.
+\end{abstract}
+
+% ------------------- Table of Contents -------------------
+\tableofcontents
+
+% ------------------- Chapters -------------------
+\chapter{Introduction}
+\section{Background}
+In the era of modern personal knowledge management (PKM), users require robust tools to organize their thoughts. NeoNotes addresses this by providing a highly aesthetic, cyberpunk-themed interface powered by a rigorous relational database backend.
+
+\section{Problem Statement}
+Existing notes applications often lock users behind immediate authentication walls and lack visual network relationship mapping. Furthermore, they abstract away database operations, leading to potential data integrity flaws during operations like archival. NeoNotes solves this by implementing a seamless guest-to-user workflow and ACID-compliant transactional archiving.
+
+\section{Scope}
+The scope encompasses a web-based note-taking client supporting Markdown, KaTeX, and Footnotes, backed by a MySQL database handling user authentication, folder management, tagging, and administrative oversight.
+
+\section{Motivation}
+A relational database solution is strictly required because of the inherent relational nature of the data: Notes belong to Folders, Folders and Notes belong to Users, and Notes contain references to other Notes.
+
+\chapter{Objectives}
+\begin{itemize}
+    \item \textbf{Objective 1:} Implement a secure, normalized (3NF) relational database to store users, folders, and notes.
+    \item \textbf{Objective 2:} Create an interactive 3D force graph visualizing relationships between notes based on internal Markdown links.
+    \item \textbf{Objective 3:} Utilize advanced DBMS features including Views, Triggers, Stored Procedures, and Row-Level locking.
+    \item \textbf{Objective 4:} Develop an administrative dashboard capable of paginating through thousands of records efficiently using SQL \texttt{LIMIT} and \texttt{OFFSET}.
+\end{itemize}
+
+\chapter{Literature Survey}
+\begin{table}[h]
+    \centering
+    \begin{tabular}{|p{3cm}|p{5cm}|p{6cm}|}
+    \hline
+    \textbf{Existing System} & \textbf{Features} & \textbf{Limitations} \\ \hline
+    Evernote & Cloud sync, rich text & Heavy UI, proprietary data lock-in, lacks 3D relationship graphing. \\ \hline
+    Obsidian & Local Markdown, 2D Graph & Not web-native, requires local installation, no built-in guest cloud sessions. \\ \hline
+    Notion & Block-based editor, databases & High latency, overly complex for simple notes, steep learning curve. \\ \hline
+    \end{tabular}
+\end{table}
+
+\chapter{Database Design}
+\section{ER Diagram}
+\textit{[Insert ER Diagram Image Here: Show Users (1) to Notes (N), Users (1) to Folders (N), Folders (1) to Notes (N)]}
+
+\section{Entity Description}
+\begin{itemize}
+    \item \textbf{neo\_users:} Stores primary user authentication data.
+    \item \textbf{neo\_folders:} Represents organizational directories for notes.
+    \item \textbf{neo\_notes:} The core entity holding markdown text and metadata.
+    \item \textbf{neo\_archived\_notes:} A secure vault identical in structure to neo\_notes.
+    \item \textbf{neo\_logs:} An audit trail entity.
+\end{itemize}
+
+\section{Schema Design \& Keys}
+\begin{itemize}
+    \item \textbf{Primary Keys:} \texttt{id} (INT AUTO\_INCREMENT) in all tables.
+    \item \textbf{Foreign Keys:} \texttt{user\_id} referencing \texttt{neo\_users(id)}, \texttt{folder\_id} referencing \texttt{neo\_folders(id)}.
+    \item \textbf{Unique Constraints:} \texttt{username} in \texttt{neo\_users}.
+\end{itemize}
+
+\section{Normalization}
+The database is normalized up to 3NF. There are no repeating groups (1NF). All non-key attributes depend wholly on the primary key (2NF). No transitive dependencies exist (3NF)—for example, user credentials are not stored in the notes table, only the \texttt{user\_id}.
+
+\chapter{Implementation}
+\section{Software and Tools Used}
+\begin{itemize}
+    \item \textbf{DBMS:} MySQL 8.0
+    \item \textbf{Programming Language:} Python 3
+    \item \textbf{Frontend:} HTML, Vanilla CSS, Vanilla JS
+    \item \textbf{Libraries:} Flask, SQLAlchemy ORM, Marked.js
+\end{itemize}
+
+\section{SQL Commands \& Advanced Features}
+
+\textbf{Views:} Used in the Admin Dashboard to calculate aggregate note counts dynamically.
+\begin{verbatim}
+CREATE OR REPLACE VIEW Active_Hackers_View AS
+SELECT u.id, u.username, COUNT(n.id) as note_count
+FROM neo_users u
+LEFT JOIN neo_notes n ON u.id = n.user_id AND n.deleted_at IS NULL
+GROUP BY u.id;
+\end{verbatim}
+
+\textbf{Triggers:} Audit logging for when a note is created.
+\begin{verbatim}
+CREATE TRIGGER after_note_insert
+AFTER INSERT ON neo_notes
+FOR EACH ROW
+BEGIN
+    INSERT INTO neo_logs (action, user_id)
+    VALUES (CONCAT('Created Note: ', NEW.title), NEW.user_id);
+END;
+\end{verbatim}
+
+\textbf{Stored Procedures:} Safely purging a user.
+\begin{verbatim}
+CREATE PROCEDURE PurgeUser(IN uid INT)
+BEGIN
+    DELETE FROM neo_users WHERE id = uid;
+END;
+\end{verbatim}
+
+\textbf{Transactions \& Concurrency (ACID):} Archiving uses strict locking.
+\begin{verbatim}
+START TRANSACTION;
+SELECT * FROM neo_notes WHERE id = ? FOR UPDATE;
+INSERT INTO neo_archived_notes (...) VALUES (...);
+DELETE FROM neo_notes WHERE id = ?;
+COMMIT;
+-- If any error occurs: ROLLBACK;
+\end{verbatim}
+
+\chapter{Results and Discussion}
+\section{Sample Outputs}
+\textit{[Insert Screenshots Here: The NeoNotes Editor, The Wired 3D Graph, The Admin Dashboard]}
+
+\section{Analysis}
+The system successfully handles scale through server-side pagination. The explicit locking mechanism (\texttt{SELECT ... FOR UPDATE}) prevents dirty reads and write skews during rapid autosaving and archiving operations. The guest session transfer workflow functions flawlessly using UUID matching.
+
+\chapter{Conclusion}
+The NeoNotes project successfully demonstrates the power of a normalized MySQL database integrated with a modern web framework. It meets all DBMS Mini Project requirements, excelling particularly in the implementation of advanced database features such as ACID transactions, triggers, views, and stored procedures.
+
+\chapter{Future Enhancements}
+\begin{itemize}
+    \item Implement collaborative editing using WebSockets.
+    \item Add full-text search capability using MySQL \texttt{MATCH() AGAINST()}.
+    \item Allow image attachments stored as BLOBs or via cloud storage URLs.
+\end{itemize}
+
+\chapter*{References}
+\begin{enumerate}
+    \item Elmasri, R., \& Navathe, S. B. (2015). \textit{Fundamentals of Database Systems}. Pearson.
+    \item Flask Documentation. \url{https://flask.palletsprojects.com/}
+    \item MySQL 8.0 Reference Manual. \url{https://dev.mysql.com/doc/refman/8.0/en/}
+\end{enumerate}
+
+\end{document}

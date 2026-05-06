@@ -10,7 +10,16 @@
         </div>
         <div class="form-group">
             <label class="form-label">PASSWORD</label>
-            <input type="password" name="password" class="form-control" required>
+            <div style="position: relative;">
+                <input type="password" name="password" id="signup-password" class="form-control" required style="padding-right: 3rem;">
+                <button type="button" id="signup-toggle" onclick="togglePassword('signup-password','signup-toggle')"
+                    style="position:absolute; right:8px; top:50%; transform:translateY(-50%);
+                           background:transparent; border:none; color:var(--sidebar-text-dim);
+                           cursor:pointer; font-family:var(--font-fam); font-size:0.75rem;
+                           letter-spacing:1px; text-transform:uppercase; padding:2px 4px;">
+                    SHOW
+                </button>
+            </div>
         </div>
         <button type="submit" class="btn btn-accent" style="width: 100%; margin-top: 1rem;">INITIALIZE_ACCOUNT</button>
     </form>
@@ -18,4 +27,20 @@
         EXISTING ACCOUNT? <a href="{{ url_for('login') }}" style="color: var(--accent);">LOGIN</a>
     </div>
 </div>
+
+<script>
+function togglePassword(inputId, btnId) {
+    const input = document.getElementById(inputId);
+    const btn   = document.getElementById(btnId);
+    if (input.type === 'password') {
+        input.type = 'text';
+        btn.textContent = 'HIDE';
+        btn.style.color = 'var(--accent)';
+    } else {
+        input.type = 'password';
+        btn.textContent = 'SHOW';
+        btn.style.color = 'var(--sidebar-text-dim)';
+    }
+}
+</script>
 {% endblock %}

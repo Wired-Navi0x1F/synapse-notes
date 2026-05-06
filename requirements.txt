@@ -1,12 +1,22 @@
+# === Flask Framework & Core Web ===
+Flask==3.1.3
+Werkzeug==3.1.8
+Jinja2==3.1.6
+
+# === Database & ORM ===
+PyMySQL==1.1.3
+SQLAlchemy==2.0.36
+alembic==1.14.0
+
+# === Environment & Security ===
+python-dotenv==1.0.1
+cryptography==47.0.0
+itsdangerous==2.2.0
+
+# === Sub-dependencies / Utilities ===
 blinker==1.9.0
 cffi==2.0.0
 click==8.3.3
 colorama==0.4.6
-cryptography==47.0.0
-Flask==3.1.3
-itsdangerous==2.2.0
-Jinja2==3.1.6
 MarkupSafe==3.0.3
 pycparser==3.0
-PyMySQL==1.1.3
-Werkzeug==3.1.8

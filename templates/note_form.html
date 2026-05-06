@@ -2,8 +2,13 @@
 
 {% block content %}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/atom-one-dark.min.css">
-<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked@4.3.0/marked.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked-katex-extension/lib/index.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked-footnote/dist/index.umd.js"></script>
 
 <form method="POST" id="note-form" style="display: flex; flex-direction: column; height: 100%; padding-bottom: 30px;">
     <div class="breadcrumb">
@@ -11,26 +16,38 @@
     </div>
     <div class="editor-header">
         <input type="text" name="title" id="note-title" class="editor-title" value="{{ note.title if note else '' }}" placeholder="UNTITLED_FILE" autocomplete="off" style="margin-bottom:0;">
-        <select name="folder_id" style="background: var(--panel-bg); color: var(--text-main); border: 1px solid var(--accent); padding: 0.2rem; font-family: var(--font-fam); outline: none;">
-            <option value="">-- No Folder --</option>
-            {% for folder in all_folders %}
-            <option value="{{ folder.id }}" {% if note and note.folder_id == folder.id %}selected{% endif %}>{{ folder.name }}</option>
-            {% endfor %}
-        </select>
-        <div style="display: flex; gap: 1rem; align-items: center;">
-            <span id="save-status" style="color: var(--text-alt); font-size: 0.8rem; display: none;">[SAVED]</span>
+        <div class="custom-select" style="position: relative; font-family: var(--font-heading); font-size: 1.1rem; letter-spacing: 1px;">
+            <input type="hidden" name="folder_id" id="folder-id-input" value="{{ note.folder_id if note and note.folder_id else '' }}">
+            <div id="folder-display" class="hacker-btn" style="--btn-color: var(--accent); min-width: 150px; justify-content: space-between; height: 100%; box-sizing: border-box; text-transform: uppercase; padding: 0.2rem 0.6rem;">
+                <span id="folder-name-display" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px;">{% if note and note.folder_id %}{{ all_folders|selectattr("id", "equalto", note.folder_id)|map(attribute="name")|first }}{% else %}NO FOLDER{% endif %}</span>
+                <span style="font-size: 0.8rem; margin-left: 0.5rem;">▼</span>
+            </div>
+            <div id="folder-dropdown" style="display: none; position: absolute; top: 100%; left: 0; background: var(--bg); border: 1px solid var(--accent); z-index: 100; width: 250px; max-height: 200px; overflow-y: auto; box-shadow: 0 4px 6px rgba(0,0,0,0.5); margin-top: 2px;">
+                <input type="text" id="folder-search" placeholder="Search folders..." style="width: 100%; padding: 0.4rem; background: var(--bg); color: var(--text-main); border: none; border-bottom: 1px solid var(--border-color); outline: none; box-sizing: border-box; font-family: var(--font-fam);" autocomplete="off" onkeydown="event.stopPropagation();">
+                <div class="folder-option" data-value="" style="padding: 0.4rem; cursor: pointer; border-bottom: 1px dashed var(--border-color); font-family: var(--font-fam); font-size: 0.9rem;">-- NO FOLDER --</div>
+                {% for folder in all_folders %}
+                <div class="folder-option" data-value="{{ folder.id }}" style="padding: 0.4rem; cursor: pointer;">{{ folder.name }}</div>
+                {% endfor %}
+            </div>
+        </div>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <span id="save-status" style="color: var(--text-alt); font-size: 0.8rem; display: none; font-family: var(--font-heading); letter-spacing: 1px;">[SAVING]</span>
             {% if note %}
-
-            <button type="button" class="btn" onclick="document.getElementById('archive-form').submit();" style="border-color: #ffaa00; color: #ffaa00;">ARCHIVE</button>
-            <button type="button" class="btn btn-danger" onclick="document.getElementById('delete-form').submit();">DELETE</button>
+            {% if session.get('user_id') %}
+            <a href="{{ url_for('export_note', id=note.id) }}" class="hacker-btn" style="--btn-color: #bb86fc;">EXPORT_MD</a>
             {% endif %}
-            <button type="submit" class="btn btn-accent">SAVE</button>
+            <button type="button" class="hacker-btn" onclick="togglePreview()" style="--btn-color: var(--cyan);">PREVIEW</button>
+            <button type="button" class="hacker-btn" onclick="event.preventDefault(); document.getElementById('archive-form').submit();" style="--btn-color: #ffaa00;">ARCHIVE</button>
+            <button type="button" class="hacker-btn" onclick="event.preventDefault(); if(confirm('WARNING: PERMANENTLY DELETE THIS FILE?')) { document.getElementById('delete-form').submit(); }" style="--btn-color: #ff5555;">DELETE</button>
+            {% endif %}
+            <button type="submit" class="hacker-btn" style="--btn-color: var(--accent);">SAVE</button>
         </div>
     </div>
     
-    <div style="display: flex; flex: 1; gap: 1rem; height: calc(100vh - 150px);">
-        <textarea name="content" id="note-content" class="form-control" style="flex: 1; height: 100%; border-right: 1px dashed var(--text-alt);" placeholder="> Enter Markdown here...">{{ note.content if note else '' }}</textarea>
-        <div id="preview-pane" style="flex: 1; height: 100%; overflow-y: auto; padding: 1rem; border: 1px solid var(--border-color); background: rgba(0,0,0,0.5);"></div>
+    <div class="editor-split" id="editor-split">
+        <textarea name="content" id="note-content" class="form-control pane pane-editor" style="height: 100%; border-right: none;" placeholder="> Enter Markdown here...">{{ note.content if note else '' }}</textarea>
+        <div class="splitter-handle" id="splitter-handle"></div>
+        <div id="preview-pane" class="pane pane-preview"></div>
     </div>
 </form>
 
@@ -41,7 +58,10 @@
 
 <script>
     // Initialize Markdown and Highlighting
+    if (typeof markedKatex !== 'undefined') marked.use(markedKatex({ throwOnError: false }));
+    if (typeof markedFootnote !== 'undefined') marked.use(markedFootnote());
     marked.setOptions({
+        breaks: true,
         highlight: function(code, lang) {
             const language = hljs.getLanguage(lang) ? lang : 'plaintext';
             return hljs.highlight(code, { language }).value;
@@ -57,7 +77,10 @@
         text = text.replace(/\[\[(.*?)\]\]/g, function(match, p1) {
             return '<a href="/open_note/' + encodeURIComponent(p1) + '" style="color: var(--accent); text-decoration: underline;">' + p1 + '</a>';
         });
-        previewPane.innerHTML = marked.parse(text);
+        const rawHtml = marked.parse(text);
+        // Allow styling in spans to keep user's inline HTML working, but sanitize scripts
+        const cleanHtml = typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(rawHtml, { ADD_ATTR: ['style'] }) : rawHtml;
+        previewPane.innerHTML = cleanHtml;
     }
     
     contentArea.addEventListener('input', updatePreview);
@@ -71,7 +94,7 @@
 
     function triggerAutosave() {
         if (!noteId) return; // Don't autosave if it's a new note that hasn't been created yet
-        if (!contentArea.value.trim()) return;
+        if (!contentArea.value.trim() && !titleInput.value.trim()) return;
         
         statusEl.textContent = '[SAVING...]';
         statusEl.style.display = 'inline';
@@ -109,5 +132,109 @@
         clearTimeout(saveTimeout);
         saveTimeout = setTimeout(triggerAutosave, 3000);
     });
+
+    let previewVisible = true;
+    const splitterHandle = document.getElementById('splitter-handle');
+    const editorSplit = document.getElementById('editor-split');
+
+    function togglePreview() {
+        previewVisible = !previewVisible;
+        if (previewVisible) {
+            previewPane.style.display = 'block';
+            splitterHandle.style.display = 'block';
+            contentArea.style.flex = '1';
+            previewPane.style.flex = '1';
+        } else {
+            previewPane.style.display = 'none';
+            splitterHandle.style.display = 'none';
+            contentArea.style.flex = '1';
+        }
+    }
+
+    // ===== Draggable Splitter =====
+    (function initSplitter() {
+        let isDragging = false;
+
+        splitterHandle.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            isDragging = true;
+            splitterHandle.classList.add('active');
+            document.body.style.cursor = 'col-resize';
+            document.body.style.userSelect = 'none';
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            const rect = editorSplit.getBoundingClientRect();
+            const offset = e.clientX - rect.left;
+            const totalWidth = rect.width;
+            const pct = (offset / totalWidth) * 100;
+
+            if (pct > 15 && pct < 85) {
+                contentArea.style.flex = 'none';
+                previewPane.style.flex = 'none';
+                contentArea.style.width = pct + '%';
+                previewPane.style.width = (100 - pct) + '%';
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isDragging) {
+                isDragging = false;
+                splitterHandle.classList.remove('active');
+                document.body.style.cursor = '';
+                document.body.style.userSelect = '';
+            }
+        });
+    })();
+
+    // Custom folder dropdown logic
+    const folderDisplay = document.getElementById('folder-display');
+    const folderDropdown = document.getElementById('folder-dropdown');
+    const folderSearch = document.getElementById('folder-search');
+    const folderInput = document.getElementById('folder-id-input');
+    const folderNameDisplay = document.getElementById('folder-name-display');
+    const folderOptions = document.querySelectorAll('.folder-option');
+
+    if (folderDisplay) {
+        folderDisplay.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isVisible = folderDropdown.style.display === 'block';
+            folderDropdown.style.display = isVisible ? 'none' : 'block';
+            if (!isVisible) {
+                folderSearch.value = '';
+                folderSearch.focus();
+                folderOptions.forEach(opt => opt.style.display = 'block');
+            }
+        });
+
+        document.addEventListener('click', () => {
+            folderDropdown.style.display = 'none';
+        });
+
+        folderDropdown.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
+
+        folderSearch.addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            folderOptions.forEach(opt => {
+                const text = opt.textContent.toLowerCase();
+                if (opt.getAttribute('data-value') === '' || text.includes(term)) {
+                    opt.style.display = 'block';
+                } else {
+                    opt.style.display = 'none';
+                }
+            });
+        });
+
+        folderOptions.forEach(opt => {
+            opt.addEventListener('click', () => {
+                folderInput.value = opt.getAttribute('data-value');
+                folderNameDisplay.textContent = opt.textContent;
+                folderDropdown.style.display = 'none';
+            });
+        });
+    }
 </script>
 {% endblock %}
