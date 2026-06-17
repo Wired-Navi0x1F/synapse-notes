@@ -4,7 +4,11 @@
       "id": "default",
       "name": "CYBERCORE",
       "description": "High contrast black & red. Copland OS aesthetic.",
-      "preview": ["#ff003c", "#606060", "#ebebdf"],
+      "preview": [
+        "#ff003c",
+        "#606060",
+        "#ebebdf"
+      ],
       "vars": {
         "--bg": "#000000",
         "--panel-bg": "rgba(0, 0, 0, 0.97)",
@@ -27,7 +31,11 @@
       "id": "muted-blue",
       "name": "MUTED BLUE",
       "description": "Deep navy with electric blue accents. Obsidian-inspired.",
-      "preview": ["#2979ff", "#393e50", "#a6accd"],
+      "preview": [
+        "#2979ff",
+        "#393e50",
+        "#a6accd"
+      ],
       "vars": {
         "--bg": "#0f111a",
         "--panel-bg": "#0f111a",
@@ -50,7 +58,11 @@
       "id": "wasp",
       "name": "WASP",
       "description": "Warm amber & gold on dark charcoal. By Santi Younger.",
-      "preview": ["#f8c537", "#D49335", "#faf2d6"],
+      "preview": [
+        "#f8c537",
+        "#D49335",
+        "#faf2d6"
+      ],
       "vars": {
         "--bg": "#242424",
         "--panel-bg": "#191919",

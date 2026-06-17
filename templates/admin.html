@@ -15,7 +15,7 @@
     
     <div style="width: 100%; margin-top: 2rem;">
         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-bottom: 1rem;">
-            <h2 style="margin: 0; color: var(--text-main);">[STATISTICS] ACTIVE HACKERS</h2>
+            <h2 style="margin: 0; color: var(--text-main);">[STATISTICS] ACTIVE USERS</h2>
             <form action="{{ url_for('admin') }}" method="GET" style="display: flex; gap: 0.5rem; margin: 0;">
                 <input type="hidden" name="note_page" value="{{ note_page }}">
                 <input type="hidden" name="filter_user_id" value="{{ filter_user_id or '' }}">

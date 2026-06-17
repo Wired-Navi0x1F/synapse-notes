@@ -10,16 +10,15 @@ DB_USER     = os.getenv("DB_USER", "root")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "")
 DB_NAME     = os.getenv("DB_NAME", "SEE")
 
-# ── Connection Pool ──────────────────────────────────────────────────────────
-# pool_pre_ping ensures dead connections are detected before use.
-# pool_recycle recycles connections every hour to avoid MySQL's wait_timeout.
+# ──────────────────────────────────────────────────────────
+
 engine = create_engine(
     f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}/{DB_NAME}",
     poolclass=QueuePool,
     pool_size=10,
     max_overflow=20,
     pool_pre_ping=True,
-    pool_recycle=3600,
+    pool_recycle=3600, # 3600s = 1 hour
 )
 
 
